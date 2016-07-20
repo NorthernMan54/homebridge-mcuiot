@@ -257,7 +257,7 @@ mcuiot.prototype.httpRequest = function(url, body, method, callback) {
             body: body,
             method: method,
             rejectUnauthorized: false,
-            timeout: 1500
+            timeout: 10000
 
         },
         function(error, response, body) {
