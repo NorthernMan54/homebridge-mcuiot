@@ -26,8 +26,7 @@ NodeMCU build and configuration.
         "pin": "031-45-154"
     },
 
-    "description": "HomeBridge Heyu Status Control",
-
+    "description": "HomeBridge",
 
 "platforms": [
 	{ "platform":	"mcuiot" }
