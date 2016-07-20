@@ -1,18 +1,17 @@
-{
-    "bridge": {
-        "name": "Bart",
-        "username": "CC:22:3D:E3:CD:39",
-        "port": 51826,
-        "pin": "031-45-154"
-    },
+{"bridge": {
+    "name": "Bart",
+    "username": "CC:22:3D:E3:CD:39",
+    "port": 51826,
+    "pin": "031-45-154"
+},
 
-    "description": "HomeBridge Heyu Status Control",
+"description": "HomeBridge",
 
 
-"platforms": [
-	{ "platform":	"mcuiot" }
-	 ],
+"platforms": [{
+    "platform": "mcuiot"
+}],
 
-"accessories": [ ]
+"accessories": []
 
 }
