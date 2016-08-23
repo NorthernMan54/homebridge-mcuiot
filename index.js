@@ -51,7 +51,7 @@ function mcuiot(log, config, api) {
 
     if (api) {
         self.api = api;
-        self.api.on('didFinishLaunching', self.didFinishLaunching.bind(this));
+        self.api.on('didFinishLaunching', self.didFinishLaunching.bind(self));
     }
 }
 
@@ -59,11 +59,11 @@ mcuiot.prototype.configureAccessory = function(accessory) {
     var self = this;
 
     accessory.reachable = true;
-    this.log("configureAccessory %s", accessory.displayName);
+    self.log("configureAccessory %s", accessory.displayName);
 
     accessory.getService(Service.TemperatureSensor)
         .getCharacteristic(Characteristic.CurrentTemperature)
-        .on('get', this.getDHTTemperature.bind(this));
+        .on('get', self.getDHTTemperature.bind(self,accessory));
 
     var name = accessory.displayName;
     self.accessories[name] = accessory;
@@ -72,7 +72,7 @@ mcuiot.prototype.configureAccessory = function(accessory) {
 mcuiot.prototype.didFinishLaunching = function() {
     var self = this;
 
-    this.log("Starting mDNS listener");
+    self.log("Starting mDNS listener");
     try {
 
         var sequence = [
@@ -88,7 +88,11 @@ mcuiot.prototype.didFinishLaunching = function() {
         browser.on('serviceUp', function(service) {
             //        console.log("service up: ", service);
             self.log("Found url http://%s:%s/", service.host, service.port);
-            self.addMcuAccessory(service);
+            var url = "http://" + service.host + ":" + service.port + "/";
+            mcuiot.prototype.mcuModel(url,function(model) {
+              self.addMcuAccessory(service,model);
+            })
+
         });
         browser.on('serviceDown', function(service) {
             self.log("service down: ", service);
@@ -115,29 +119,29 @@ mcuiot.prototype.dashEventWithAccessory = function(self, accessory) {
 }
 
 
-mcuiot.prototype.getDHTTemperature = function(callback) {
+mcuiot.prototype.getDHTTemperature = function(accessory,callback) {
     var self = this;
 
-    if (!this.url) {
-        this.log.warn("Ignoring request; No url defined.");
+    if (!self.url) {
+        self.log.warn("Ignoring request; No url defined.");
         callback(new Error("No url defined."));
         return;
     }
 
-    //    this.log("Object: %s", JSON.stringify(this, null, 4));
+    //    self.log("Object: %s", JSON.stringify(accessory, null, 4));
 
-    var url = this.url;
-    var name = this.name;
-    this.log("Reading DHT %s", url);
+    var url = accessory.context.url;
+    var name = accessory.displayName;
+    self.log("Reading DHT %s %s", name, url);
 
-    this.httpRequest(url, "", "GET", function(error, response, responseBody) {
+    self.httpRequest(url, "", "GET", function(error, response, responseBody) {
         if (error) {
-            this.log('HTTP get failed: %s', error.message);
+            self.log('HTTP get failed: %s', error.message);
             callback(error);
         } else {
             var response = JSON.parse(responseBody);
 
-            this.log("DHT Response %s", JSON.stringify(response, null, 4));
+            self.log("DHT Response %s", JSON.stringify(response, null, 4));
             self.accessories[name].getService(Service.TemperatureSensor)
                 .setCharacteristic(Characteristic.CurrentRelativeHumidity, parseFloat(response.Data.Humidity));
 
@@ -149,35 +153,36 @@ mcuiot.prototype.getDHTTemperature = function(callback) {
 
             callback(null, parseFloat(response.Data.Temperature));
         }
-    }.bind(this));
+    }.bind(self));
 }
 
-mcuiot.prototype.mcuModel = function(url) {
+mcuiot.prototype.mcuModel = function(url, callback) {
     var self = this;
     var model;
     //    this.log("Object: %s", JSON.stringify(this, null, 4));
 
-    this.log("Reading DHT Model %s", url);
+    // console.log("Reading DHT Model %s", url);
 
-    this.httpRequest(url, "", "GET", function(error, response, responseBody) {
+    self.httpRequest(url, "", "GET", function(error, response, responseBody) {
         if (error) {
-            this.log('HTTP get failed: %s', error.message);
+            console.log('HTTP get failed: %s', error.message);
             callback(error);
         } else {
             var response = JSON.parse(responseBody);
 
-            this.log("DHT Response %s", response.Hostname, response.Model, response.Version);
+      //      console.log("DHT Response %s", response.Hostname, response.Model, response.Version);
 
             model = response.Model;
 
-            return model;
+            callback(model);
+
         }
-    }.bind(this));
+    }.bind(self));
 
 
 }
 
-mcuiot.prototype.addMcuAccessory = function(device) {
+mcuiot.prototype.addMcuAccessory = function(device,model) {
     var self = this;
     var name = device.name;
     var host = device.host;
@@ -187,42 +192,54 @@ mcuiot.prototype.addMcuAccessory = function(device) {
     self.name = name;
     var uuid = UUIDGen.generate(name);
 
-    if (!this.accessories[name]) {
-        this.log("addMcuAccessory %s", name);
-        var newAccessory = new Accessory(name, uuid, 10);
+    if (!self.accessories[name]) {
+//        self.log("addMcuAccessory 191 %s", name);
+        var accessory = new Accessory(name, uuid, 10);
 
-        var model = self.mcuModel(url);
-this.log("addMcuAccessory %s", name,model);
-        newAccessory.reachable = true;
-        newAccessory.context.model = model;
-        //        newAccessory.context.name = name;
+//        var model = self.mcuModel(url);
 
-        newAccessory.addService(Service.TemperatureSensor, name)
+        self.log("addMcuAccessory 195 %s", name, model);
+        accessory.reachable = true;
+        accessory.context.model = model;
+        accessory.context.url = url;
+//        this.log("Category %s ", newAccessory.category);
+
+        accessory.addService(Service.TemperatureSensor, name)
             .getCharacteristic(Characteristic.CurrentTemperature)
-            .on('get', this.getDHTTemperature.bind(self));
+            .on('get', self.getDHTTemperature.bind(self,accessory));
 
-        newAccessory
+        accessory
             .getService(Service.TemperatureSensor)
             .addCharacteristic(Characteristic.CurrentRelativeHumidity);
 
         if (model == "DHT-YL") {
 
-            newAccessory
+            accessory
                 .getService(Service.TemperatureSensor)
                 .addCharacteristic(mcuiot.Moisture);
 
         }
 
-        newAccessory
+        accessory
             .getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, "Expressiv")
             .setCharacteristic(Characteristic.Model, model)
             .setCharacteristic(Characteristic.SerialNumber, url);
 
-        this.accessories[name] = newAccessory;
-        this.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [newAccessory]);
+//        newAccessory
+//            .addService(Service.BridgingState)
+//            .getCharacteristic(Characteristic.Reachable)
+//            .setValue(true);
+
+//        newAccessory
+//            .getService(Service.BridgingState)
+//            .getCharacteristic(Characteristic.Category)
+//            .setValue(newAccessory.category);
+
+        self.accessories[name] = accessory;
+        self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
     } else {
-        this.log("Skipping %s", name);
+        self.log("Skipping %s", name);
     }
 }
 
