@@ -137,7 +137,8 @@ mcuiot.prototype.getDHTTemperature = function(accessory,callback) {
     self.httpRequest(url, "", "GET", function(error, response, responseBody) {
         if (error) {
             self.log('HTTP get failed: %s', error.message);
-            callback(error);
+            self.removeAccessory(name);
+            callback(new Error(error));
         } else {
             var response = JSON.parse(responseBody);
 
