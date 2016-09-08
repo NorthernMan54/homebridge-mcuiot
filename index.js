@@ -96,7 +96,7 @@ mcuiot.prototype.didFinishLaunching = function() {
         });
         browser.on('serviceDown', function(service) {
             self.log("service down: ", service);
-            self.removeAccessory(service.name);
+            self.deviceDown(service.name);
         });
         browser.on('error', handleError);
         browser.start();
@@ -244,7 +244,17 @@ mcuiot.prototype.addMcuAccessory = function(device,model) {
     }
 }
 
+// MDNS reported service, check if device is down
 
+mcuiot.prototype.deviceDown = function(name) {
+    var self = this;
+    if (self.accessories[name]) {
+        accessory = this.accessories[name];
+        self.mcuModel(accessory.context.url,function(model) {
+          self.removeAccessory(name);
+        })
+    }
+}
 
 mcuiot.prototype.removeAccessory = function(name) {
     this.log("removeAccessory %s", name);
