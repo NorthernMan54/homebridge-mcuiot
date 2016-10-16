@@ -1,4 +1,16 @@
-//var spawn = require('child_process').spawn;
+// Homebridge platform plugin supporting the display of temperature, humidity and
+// soil moisture from ESP8266/Nodemcu devices connected to DHT22 and YL-69 sensors.
+// Build instructions for the sensor are in this github project
+// https://github.com/NorthernMan54/nodemcu-dht-yl69-json-mdns
+//
+// Supports automatic device discovery using mDNS
+//
+// Remember to add platform to config.json. Example:
+//
+// "platforms": [{
+//    "platform": "mcuiot"
+// }],
+
 var request = require("request");
 var mdns = require('mdns');
 var inherits = require('util').inherits;
@@ -24,6 +36,8 @@ function fixInheritance(subclass, superclass) {
     }
 }
 
+// Set mDNS timeout to 5 seconds
+
 function handleError(error) {
     switch (error.errorCode) {
         case mdns.kDNSServiceErr_Unknown:
@@ -32,7 +46,6 @@ function handleError(error) {
             break;
         default:
             console.warn(error);
-            //throw error;
     }
 }
 
@@ -44,10 +57,7 @@ function mcuiot(log, config, api) {
         "platform": "mcuiot"
     };
 
-    self.timeout = self.config.timeout || 15000;
-
     self.accessories = {}; // MAC -> Accessory
-
 
     if (api) {
         self.api = api;
@@ -61,9 +71,11 @@ mcuiot.prototype.configureAccessory = function(accessory) {
     accessory.reachable = true;
     self.log("configureAccessory %s", accessory.displayName);
 
+    accessory.on('identify', self.Identify.bind(self, accessory));
+
     accessory.getService(Service.TemperatureSensor)
         .getCharacteristic(Characteristic.CurrentTemperature)
-        .on('get', self.getDHTTemperature.bind(self,accessory));
+        .on('get', self.getDHTTemperature.bind(self, accessory));
 
     var name = accessory.displayName;
     self.accessories[name] = accessory;
@@ -86,17 +98,18 @@ mcuiot.prototype.didFinishLaunching = function() {
             resolverSequence: sequence
         });
         browser.on('serviceUp', function(service) {
-            //        console.log("service up: ", service);
+
             self.log("Found url http://%s:%s/", service.host, service.port);
             var url = "http://" + service.host + ":" + service.port + "/";
-            mcuiot.prototype.mcuModel(url,function(model) {
-              self.addMcuAccessory(service,model);
+            mcuiot.prototype.mcuModel(url, function(model) {
+                self.addMcuAccessory(service, model);
             })
 
         });
         browser.on('serviceDown', function(service) {
-            self.log("service down: ", service);
-            self.deviceDown(service.name);
+            self.log("Service down: ", service);
+            // Moved clean up to Identify service
+            //self.deviceDown(service.name);
         });
         browser.on('error', handleError);
         browser.start();
@@ -106,20 +119,32 @@ mcuiot.prototype.didFinishLaunching = function() {
 
 }
 
+// Am using the Identify function to validate a device, and if it doesn't respond
+// remove it from the config
 
-mcuiot.prototype.dashEventWithAccessory = function(self, accessory) {
-    var targetChar = accessory
-        .getService(Service.StatelessProgrammableSwitch)
-        .getCharacteristic(Characteristic.ProgrammableSwitchEvent);
+mcuiot.prototype.Identify = function(accessory, status, callback) {
 
-    targetChar.setValue(1);
-    setTimeout(function() {
-        targetChar.setValue(0);
-    }, self.timeout);
+    var self = this;
+
+    //  self.log("Object: %s", JSON.stringify(accessory, null, 4));
+
+    self.log("Identify Request %s", accessory.displayName);
+
+    self.httpRequest(accessory.context.url, "", "GET", function(error, response, responseBody) {
+        if (error) {
+            self.log('HTTP get failed: %s', error.message);
+            self.log("Identify failed %s", accessory.displayName);
+            self.removeAccessory(accessory.displayName);
+            callback(error);
+        } else {
+            self.log("Identify successful %s", accessory.displayName);
+            callback();
+        }
+    }.bind(self));
+
 }
 
-
-mcuiot.prototype.getDHTTemperature = function(accessory,callback) {
+mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
     var self = this;
 
     if (!self.url) {
@@ -132,27 +157,32 @@ mcuiot.prototype.getDHTTemperature = function(accessory,callback) {
 
     var url = accessory.context.url;
     var name = accessory.displayName;
-    self.log("Reading DHT %s %s", name, url);
+    self.log("Reading MCUIOT %s", name);
 
     self.httpRequest(url, "", "GET", function(error, response, responseBody) {
         if (error) {
             self.log('HTTP get failed: %s', error.message);
-            self.removeAccessory(name);
+            //self.removeAccessory(name);
             callback(new Error(error));
         } else {
             var response = JSON.parse(responseBody);
+            self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
+            if (parseInt(response.Data.Status) != 0) {
+                self.log("Error status %s", parseInt(response.Data.Status));
+                callback(new Error("Nodemcu returned error"));
+            } else {
 
-            self.log("DHT Response %s", JSON.stringify(response, null, 4));
-            self.accessories[name].getService(Service.TemperatureSensor)
-                .setCharacteristic(Characteristic.CurrentRelativeHumidity, parseFloat(response.Data.Humidity));
-
-            if (response.Model == "DHT-YL") {
-                var moist = (1024 - parseFloat(response.Data.Moisture)) / 10.2;
                 self.accessories[name].getService(Service.TemperatureSensor)
-                    .setCharacteristic("Moisture", parseFloat(moist));
-            }
+                    .setCharacteristic(Characteristic.CurrentRelativeHumidity, parseFloat(response.Data.Humidity));
 
-            callback(null, parseFloat(response.Data.Temperature));
+                if (response.Model == "DHT-YL") {
+                    var moist = (1024 - parseFloat(response.Data.Moisture)) / 10.2;
+                    self.accessories[name].getService(Service.TemperatureSensor)
+                        .setCharacteristic("Moisture", parseFloat(moist));
+                }
+
+                callback(null, parseFloat(response.Data.Temperature));
+            }
         }
     }.bind(self));
 }
@@ -162,8 +192,6 @@ mcuiot.prototype.mcuModel = function(url, callback) {
     var model;
     //    this.log("Object: %s", JSON.stringify(this, null, 4));
 
-    // console.log("Reading DHT Model %s", url);
-
     self.httpRequest(url, "", "GET", function(error, response, responseBody) {
         if (error) {
             console.log('HTTP get failed: %s', error.message);
@@ -171,19 +199,15 @@ mcuiot.prototype.mcuModel = function(url, callback) {
         } else {
             var response = JSON.parse(responseBody);
 
-      //      console.log("DHT Response %s", response.Hostname, response.Model, response.Version);
-
             model = response.Model;
-
             callback(model);
-
         }
     }.bind(self));
 
 
 }
 
-mcuiot.prototype.addMcuAccessory = function(device,model) {
+mcuiot.prototype.addMcuAccessory = function(device, model) {
     var self = this;
     var name = device.name;
     var host = device.host;
@@ -194,20 +218,16 @@ mcuiot.prototype.addMcuAccessory = function(device,model) {
     var uuid = UUIDGen.generate(name);
 
     if (!self.accessories[name]) {
-//        self.log("addMcuAccessory 191 %s", name);
         var accessory = new Accessory(name, uuid, 10);
-
-//        var model = self.mcuModel(url);
 
         self.log("addMcuAccessory 195 %s", name, model);
         accessory.reachable = true;
         accessory.context.model = model;
         accessory.context.url = url;
-//        this.log("Category %s ", newAccessory.category);
 
         accessory.addService(Service.TemperatureSensor, name)
             .getCharacteristic(Characteristic.CurrentTemperature)
-            .on('get', self.getDHTTemperature.bind(self,accessory));
+            .on('get', self.getDHTTemperature.bind(self, accessory));
 
         accessory
             .getService(Service.TemperatureSensor)
@@ -227,15 +247,7 @@ mcuiot.prototype.addMcuAccessory = function(device,model) {
             .setCharacteristic(Characteristic.Model, model)
             .setCharacteristic(Characteristic.SerialNumber, url);
 
-//        newAccessory
-//            .addService(Service.BridgingState)
-//            .getCharacteristic(Characteristic.Reachable)
-//            .setValue(true);
-
-//        newAccessory
-//            .getService(Service.BridgingState)
-//            .getCharacteristic(Characteristic.Category)
-//            .setValue(newAccessory.category);
+        accessory.on('identify', self.Identify.bind(self, accessory));
 
         self.accessories[name] = accessory;
         self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
@@ -245,13 +257,14 @@ mcuiot.prototype.addMcuAccessory = function(device,model) {
 }
 
 // MDNS reported service, check if device is down
+// This is no longer used
 
 mcuiot.prototype.deviceDown = function(name) {
     var self = this;
     if (self.accessories[name]) {
         accessory = this.accessories[name];
-        self.mcuModel(accessory.context.url,function(model) {
-          self.removeAccessory(name);
+        self.mcuModel(accessory.context.url, function(model) {
+            self.removeAccessory(name);
         })
     }
 }
@@ -279,6 +292,8 @@ mcuiot.Moisture = function() {
     this.value = this.getDefaultValue();
 };
 
+// Set http request timeout to 10 seconds
+
 mcuiot.prototype.httpRequest = function(url, body, method, callback) {
     request({
             url: url,
@@ -293,8 +308,6 @@ mcuiot.prototype.httpRequest = function(url, body, method, callback) {
         })
 }
 
-//removed the ARP configuration method. config.json will need to be filled in manually.
-//TODO: add a method to discover the MAC of a specific button and re-implement this function.
 mcuiot.prototype.configurationRequestHandler = function(context, request, callback) {
 
     this.log("configurationRequestHandler");
