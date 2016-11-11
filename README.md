@@ -5,6 +5,8 @@ configured as temperature/humidity sensor.  Supported sensor's include DHT22 and
 YL-69 Soil Moisture Sensor.  Also supports auto device discovery using mDNS,
 removing the need to hard code device ip address in the configuration file.
 
+Full build instructions are included in my instructable http://www.instructables.com/id/Homebridge-MCU-IOT/
+
 # Installation
 
 1. Install homebridge using: npm install -g homebridge
