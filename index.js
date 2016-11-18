@@ -108,8 +108,8 @@ mcuiot.prototype.didFinishLaunching = function() {
         });
         browser.on('serviceDown', function(service) {
             self.log("Service down: ", service);
-            // Moved clean up to Identify service
-            //self.deviceDown(service.name);
+            // Mark missing devices as unreachable
+            self.deviceDown(service.name);
         });
         browser.on('error', handleError);
         browser.start();
@@ -227,6 +227,10 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
 
         accessory.addService(Service.TemperatureSensor, name)
             .getCharacteristic(Characteristic.CurrentTemperature)
+            .setProps({
+                minValue: -100,
+                maxValue: 100
+            })
             .on('get', self.getDHTTemperature.bind(self, accessory));
 
         accessory
@@ -244,7 +248,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
         accessory
             .getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, "Expressiv")
-            .setCharacteristic(Characteristic.Model, model)
+            .setCharacteristic(Characteristic.Model, model + " " + name)
             .setCharacteristic(Characteristic.SerialNumber, url);
 
         accessory.on('identify', self.Identify.bind(self, accessory));
@@ -253,18 +257,19 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
         self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
     } else {
         self.log("Skipping %s", name);
+        accessory = this.accessories[name];
+        accessory.updateReachability(true);
     }
 }
 
-// MDNS reported service, check if device is down
-// This is no longer used
+// Mark down accessories as unreachable
 
 mcuiot.prototype.deviceDown = function(name) {
     var self = this;
     if (self.accessories[name]) {
         accessory = this.accessories[name];
         self.mcuModel(accessory.context.url, function(model) {
-            self.removeAccessory(name);
+            accessory.updateReachability(false);
         })
     }
 }
