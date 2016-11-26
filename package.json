@@ -21,6 +21,7 @@
     "homebridge": ">=0.2.0"
   },
   "dependencies": {
+    "hap-nodejs-community-types" : "https://github.com/homespun/hap-nodejs-community-types.git",
     "request": "^2.65.0",
     "mdns": ">=2.3.3"
   },

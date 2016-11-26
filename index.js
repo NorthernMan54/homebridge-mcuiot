@@ -8,60 +8,36 @@
 // Remember to add platform to config.json. Example:
 //
 // "platforms": [{
-//    "platform": "mcuiot"
+//    "platform": "mcuiot",
+//    "name": "MCUIOT"
 // }],
 
 var request = require("request");
 var mdns = require('mdns');
 var inherits = require('util').inherits;
-var Accessory, Service, Characteristic, UUIDGen;
+var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
 
 module.exports = function(homebridge) {
     Accessory = homebridge.platformAccessory;
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     UUIDGen = homebridge.hap.uuid;
+    CommunityTypes = require('hap-nodejs-community-types')(homebridge)
 
     fixInheritance(mcuiot.Moisture, Characteristic);
 
     homebridge.registerPlatform("homebridge-mcuiot", "mcuiot", mcuiot, true);
 }
 
-function fixInheritance(subclass, superclass) {
-    var proto = subclass.prototype;
-    inherits(subclass, superclass);
-    subclass.prototype.parent = superclass.prototype;
-    for (var mn in proto) {
-        subclass.prototype[mn] = proto[mn];
-    }
-}
-
-// Set mDNS timeout to 5 seconds
-
-function handleError(error) {
-    switch (error.errorCode) {
-        case mdns.kDNSServiceErr_Unknown:
-            console.warn(error);
-            setTimeout(createBrowser, 5000);
-            break;
-        default:
-            console.warn(error);
-    }
-}
-
 function mcuiot(log, config, api) {
-    var self = this;
-
-    self.log = log;
-    self.config = config || {
-        "platform": "mcuiot"
-    };
-
-    self.accessories = {}; // MAC -> Accessory
+    this.log = log;
+    this.config = config;
+    this.debug = config['debug'] || false;
+    this.accessories = {}; // MAC -> Accessory
 
     if (api) {
-        self.api = api;
-        self.api.on('didFinishLaunching', self.didFinishLaunching.bind(self));
+        this.api = api;
+        this.api.on('didFinishLaunching', this.didFinishLaunching.bind(this));
     }
 }
 
@@ -99,10 +75,10 @@ mcuiot.prototype.didFinishLaunching = function() {
         });
         browser.on('serviceUp', function(service) {
 
-            self.log("Found url http://%s:%s/", service.host, service.port);
-            var url = "http://" + service.host + ":" + service.port + "/";
-            mcuiot.prototype.mcuModel(url, function(model) {
-                self.addMcuAccessory(service, model);
+            self.log("Found MCUIOT device:", service.name);
+            mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
+                if (!err)
+                    self.addMcuAccessory(service, model);
             })
 
         });
@@ -130,12 +106,12 @@ mcuiot.prototype.Identify = function(accessory, status, callback) {
 
     self.log("Identify Request %s", accessory.displayName);
 
-    self.httpRequest(accessory.context.url, "", "GET", function(error, response, responseBody) {
-        if (error) {
-            self.log('HTTP get failed: %s', error.message);
+    self.httpRequest(accessory.context.url, "", "GET", function(err, response, responseBody) {
+        if (err) {
+            self.log('HTTP get failed: %s', err.message);
             self.log("Identify failed %s", accessory.displayName);
             self.removeAccessory(accessory.displayName);
-            callback(error);
+            callback(err);
         } else {
             self.log("Identify successful %s", accessory.displayName);
             callback();
@@ -157,16 +133,16 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
     var url = accessory.context.url;
     var name = accessory.displayName;
-    self.log("Reading MCUIOT %s", name);
+    self.log("Reading MCUIOT:", name);
 
-    self.httpRequest(url, "", "GET", function(error, response, responseBody) {
-        if (error) {
-            self.log('HTTP get failed: %s', error.message);
+    self.httpRequest(url, "", "GET", function(err, response, responseBody) {
+        if (err) {
+            self.log('HTTP get failed: %s', err.message);
             //self.removeAccessory(name);
-            callback(new Error(error));
+            callback(err);
         } else {
             var response = JSON.parse(responseBody);
-            self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
+            if ( self.debug ) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
             if (parseInt(response.Data.Status) != 0) {
                 self.log("Error status %s", parseInt(response.Data.Status));
                 callback(new Error("Nodemcu returned error"));
@@ -175,10 +151,18 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                 self.accessories[name].getService(Service.TemperatureSensor)
                     .setCharacteristic(Characteristic.CurrentRelativeHumidity, parseFloat(response.Data.Humidity));
 
-                if (response.Model == "DHT-YL") {
-                    var moist = (1024 - parseFloat(response.Data.Moisture)) / 10.2;
-                    self.accessories[name].getService(Service.TemperatureSensor)
-                        .setCharacteristic("Moisture", parseFloat(moist));
+                switch (response.Model) {
+                    case "DHT-YL":
+                    case "BME-YL":
+                        // Set moisture level for YL Models
+                        var moist = (1024 - parseFloat(response.Data.Moisture)) / 10.2;
+                        self.accessories[name].getService(Service.TemperatureSensor)
+                            .setCharacteristic("Moisture", parseFloat(moist));
+                    case "BME":
+                    case "BME-YL":
+                        // Set BME280 Atmospheric pressure sensor;
+                        self.accessories[name].getService(Service.TemperatureSensor)
+                            .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, parseFloat(response.Data.Barometer));
                 }
 
                 callback(null, parseFloat(response.Data.Temperature));
@@ -192,15 +176,13 @@ mcuiot.prototype.mcuModel = function(url, callback) {
     var model;
     //    this.log("Object: %s", JSON.stringify(this, null, 4));
 
-    self.httpRequest(url, "", "GET", function(error, response, responseBody) {
-        if (error) {
-            console.log('HTTP get failed: %s', error.message);
-            callback(error);
+    self.httpRequest(url, "", "GET", function(err, response, responseBody) {
+        if (err) {
+            console.log('HTTP get failed: %s', err.message);
+            callback(err);
         } else {
             var response = JSON.parse(responseBody);
-
-            model = response.Model;
-            callback(model);
+            callback(null, response.Model);
         }
     }.bind(self));
 
@@ -237,11 +219,19 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
             .getService(Service.TemperatureSensor)
             .addCharacteristic(Characteristic.CurrentRelativeHumidity);
 
-        if (model == "DHT-YL") {
-
-            accessory
-                .getService(Service.TemperatureSensor)
-                .addCharacteristic(mcuiot.Moisture);
+        switch (model) {
+            case "DHT-YL":
+            case "BME-YL":
+                // Add YL-69 Moisture sensor
+                accessory
+                    .getService(Service.TemperatureSensor)
+                    .addCharacteristic(mcuiot.Moisture);
+            case "BME":
+            case "BME-YL":
+                // Add BME280 Atmospheric pressure sensor;
+                accessory
+                    .getService(Service.TemperatureSensor)
+                    .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
 
         }
 
@@ -308,8 +298,8 @@ mcuiot.prototype.httpRequest = function(url, body, method, callback) {
             timeout: 10000
 
         },
-        function(error, response, body) {
-            callback(error, response, body)
+        function(err, response, body) {
+            callback(err, response, body)
         })
 }
 
@@ -317,4 +307,28 @@ mcuiot.prototype.configurationRequestHandler = function(context, request, callba
 
     this.log("configurationRequestHandler");
 
+}
+
+// Helpers, should move to a module
+
+function fixInheritance(subclass, superclass) {
+    var proto = subclass.prototype;
+    inherits(subclass, superclass);
+    subclass.prototype.parent = superclass.prototype;
+    for (var mn in proto) {
+        subclass.prototype[mn] = proto[mn];
+    }
+}
+
+// Set mDNS timeout to 5 seconds
+
+function handleError(err) {
+    switch (err.errorCode) {
+        case mdns.kDNSServiceErr_Unknown:
+            console.warn(err);
+            setTimeout(createBrowser, 5000);
+            break;
+        default:
+            console.warn(err);
+    }
 }

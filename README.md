@@ -49,10 +49,15 @@ then removes the device.
     "description": "HomeBridge",
 
 "platforms": [
-	{ "platform":	"mcuiot" }
+	{ "platform":	"mcuiot",
+    "name":     "MCUIOT" }
 	 ],
 
 "accessories": [ ]
 
 }
 ```
+
+# Credits
+
+- Homebridge communityTypes - Homespun and SphtKr
