@@ -9,7 +9,9 @@
 //
 // "platforms": [{
 //    "platform": "mcuiot",
-//    "name": "MCUIOT"
+//    "name": "MCUIOT",
+//    "debug":    "True", // Optional enables debug output - noisy
+//    "refresh":  "60"    // Optional, device refresh time
 // }],
 
 var request = require("request");
@@ -26,13 +28,20 @@ module.exports = function(homebridge) {
 
     fixInheritance(mcuiot.Moisture, Characteristic);
 
-    homebridge.registerPlatform("homebridge-mcuiot", "mcuiot", mcuiot, true);
+    homebridge.registerPlatform("homebridge-mcuiot", "mcuiot", mcuiot);
 }
 
 function mcuiot(log, config, api) {
     this.log = log;
     this.config = config;
+
     this.debug = config['debug'] || false;
+    this.refresh = config['refresh'] || 60; // Update every minute
+    this.leak = config['leak'] || 10; // Leak detected threshold
+
+    if ( this.debug )
+      this.log("Settings: refresh=%s, leak=%s",this.refresh,this.leak);
+
     this.accessories = {}; // MAC -> Accessory
 
     if (api) {
@@ -49,7 +58,8 @@ mcuiot.prototype.configureAccessory = function(accessory) {
 
     accessory.on('identify', self.Identify.bind(self, accessory));
 
-    accessory.getService(Service.TemperatureSensor)
+    if (accessory.getService(Service.TemperatureSensor))
+        accessory.getService(Service.TemperatureSensor)
         .getCharacteristic(Characteristic.CurrentTemperature)
         .on('get', self.getDHTTemperature.bind(self, accessory));
 
@@ -79,6 +89,7 @@ mcuiot.prototype.didFinishLaunching = function() {
             mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
                 if (!err)
                     self.addMcuAccessory(service, model);
+
             })
 
         });
@@ -93,6 +104,23 @@ mcuiot.prototype.didFinishLaunching = function() {
         handleError(ex);
     }
 
+    setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+
+}
+
+mcuiot.prototype.devicePolling = function() {
+    for (var id in this.accessories) {
+        var device = this.accessories[id];
+        if (device.reachable) {
+            if (this.debug)
+                this.log("Poll:", id);
+            if (this.accessories[id].getService(Service.TemperatureSensor))
+                this.accessories[id].getService(Service.TemperatureSensor)
+                .getCharacteristic(Characteristic.CurrentTemperature)
+                .getValue();
+
+        }
+    }
 }
 
 // Am using the Identify function to validate a device, and if it doesn't respond
@@ -106,7 +134,7 @@ mcuiot.prototype.Identify = function(accessory, status, callback) {
 
     self.log("Identify Request %s", accessory.displayName);
 
-    self.httpRequest(accessory.context.url, "", "GET", function(err, response, responseBody) {
+    httpRequest(accessory.context.url, "", "GET", function(err, response, responseBody) {
         if (err) {
             self.log('HTTP get failed: %s', err.message);
             self.log("Identify failed %s", accessory.displayName);
@@ -135,37 +163,54 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
     var name = accessory.displayName;
     self.log("Reading MCUIOT:", name);
 
-    self.httpRequest(url, "", "GET", function(err, response, responseBody) {
+    httpRequest(url, "", "GET", function(err, response, responseBody) {
         if (err) {
             self.log('HTTP get failed: %s', err.message);
             //self.removeAccessory(name);
             callback(err);
         } else {
             var response = JSON.parse(responseBody);
-            if ( self.debug ) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
-            if (parseInt(response.Data.Status) != 0) {
-                self.log("Error status %s", parseInt(response.Data.Status));
+            if (self.debug) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
+            if (roundInt(response.Data.Status) != 0) {
+                self.log("Error status %s", roundInt(response.Data.Status));
                 callback(new Error("Nodemcu returned error"));
             } else {
 
                 self.accessories[name].getService(Service.TemperatureSensor)
-                    .setCharacteristic(Characteristic.CurrentRelativeHumidity, parseFloat(response.Data.Humidity));
+                    .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
 
-                switch (response.Model) {
-                    case "DHT-YL":
-                    case "BME-YL":
-                        // Set moisture level for YL Models
-                        var moist = (1024 - parseFloat(response.Data.Moisture)) / 10.2;
+                if (response.Model.endsWith("YL")) {
+                    // Set moisture level for YL Models
+                    var moist = (1024 - roundInt(response.Data.Moisture)) / 10.2;
+                    self.accessories[name].getService(Service.TemperatureSensor)
+                        .setCharacteristic("Moisture", roundInt(moist));
+                    // Do we have a leak ?
+                    if( this.debug )
+                          this.log("Leak: %s > %s ?",moist,this.leak);
+                    if (moist > this.leak ) {
+                      if( this.debug )
+                        this.log("Leak");
                         self.accessories[name].getService(Service.TemperatureSensor)
-                            .setCharacteristic("Moisture", parseFloat(moist));
-                    case "BME":
-                    case "BME-YL":
-                        // Set BME280 Atmospheric pressure sensor;
+                            .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
+                        self.accessories[name + "LS"].getService(Service.LeakSensor)
+                            .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
+
+                    } else {
+                      if( this.debug )
+                        this.log("No Leak");
                         self.accessories[name].getService(Service.TemperatureSensor)
-                            .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, parseFloat(response.Data.Barometer));
+                            .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+                        self.accessories[name + "LS"].getService(Service.LeakSensor)
+                            .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+                    }
+                }
+                if (response.Model.startsWith("BME")) {
+                    // Set BME280 Atmospheric pressure sensor;
+                    self.accessories[name].getService(Service.TemperatureSensor)
+                        .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(response.Data.Barometer));
                 }
 
-                callback(null, parseFloat(response.Data.Temperature));
+                callback(null, roundInt(response.Data.Temperature));
             }
         }
     }.bind(self));
@@ -176,7 +221,7 @@ mcuiot.prototype.mcuModel = function(url, callback) {
     var model;
     //    this.log("Object: %s", JSON.stringify(this, null, 4));
 
-    self.httpRequest(url, "", "GET", function(err, response, responseBody) {
+    httpRequest(url, "", "GET", function(err, response, responseBody) {
         if (err) {
             console.log('HTTP get failed: %s', err.message);
             callback(err);
@@ -202,7 +247,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     if (!self.accessories[name]) {
         var accessory = new Accessory(name, uuid, 10);
 
-        self.log("addMcuAccessory 195 %s", name, model);
+        self.log("Adding MCUIOT Device:", name, model);
         accessory.reachable = true;
         accessory.context.model = model;
         accessory.context.url = url;
@@ -219,25 +264,28 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
             .getService(Service.TemperatureSensor)
             .addCharacteristic(Characteristic.CurrentRelativeHumidity);
 
-        switch (model) {
-            case "DHT-YL":
-            case "BME-YL":
-                // Add YL-69 Moisture sensor
-                accessory
-                    .getService(Service.TemperatureSensor)
-                    .addCharacteristic(mcuiot.Moisture);
-            case "BME":
-            case "BME-YL":
-                // Add BME280 Atmospheric pressure sensor;
-                accessory
-                    .getService(Service.TemperatureSensor)
-                    .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
+        if (model.endsWith("YL")) {
+            // Add YL-69 Moisture sensor
+            accessory
+                .getService(Service.TemperatureSensor)
+                .addCharacteristic(mcuiot.Moisture);
+            accessory
+                .getService(Service.TemperatureSensor)
+                .addCharacteristic(Characteristic.LeakDetected);
 
+            this.addLeakSensor(device, model);
+        }
+        if (model.startsWith("BME")) {
+            // Add BME280 Atmospheric pressure sensor;
+            this.log("Adding BME", name);
+            accessory
+                .getService(Service.TemperatureSensor)
+                .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
         }
 
         accessory
             .getService(Service.AccessoryInformation)
-            .setCharacteristic(Characteristic.Manufacturer, "Expressiv")
+            .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
             .setCharacteristic(Characteristic.Model, model + " " + name)
             .setCharacteristic(Characteristic.SerialNumber, url);
 
@@ -251,6 +299,40 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
         accessory.updateReachability(true);
     }
 }
+
+mcuiot.prototype.addLeakSensor = function(device, model) {
+    var self = this;
+    var name = device.name + "LS";
+
+    var url = "http://" + device.host + ":" + device.port + "/";
+    //    self.url = url;
+    //    self.name = name;
+    var uuid = UUIDGen.generate(name);
+
+    if (!self.accessories[name]) {
+        var accessory = new Accessory(name, uuid, 10);
+
+        self.log("Adding MCUIOT-LS Device:", name, model);
+        accessory.reachable = true;
+        accessory.context.model = model;
+        accessory.context.url = url;
+
+        accessory.addService(Service.LeakSensor, name);
+
+        accessory
+            .getService(Service.AccessoryInformation)
+            .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
+            .setCharacteristic(Characteristic.Model, model + " " + name)
+            .setCharacteristic(Characteristic.SerialNumber, url);
+
+        accessory.on('identify', self.Identify.bind(self, accessory));
+
+        self.accessories[name] = accessory;
+        self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
+    }
+}
+
+
 
 // Mark down accessories as unreachable
 
@@ -287,22 +369,6 @@ mcuiot.Moisture = function() {
     this.value = this.getDefaultValue();
 };
 
-// Set http request timeout to 10 seconds
-
-mcuiot.prototype.httpRequest = function(url, body, method, callback) {
-    request({
-            url: url,
-            body: body,
-            method: method,
-            rejectUnauthorized: false,
-            timeout: 10000
-
-        },
-        function(err, response, body) {
-            callback(err, response, body)
-        })
-}
-
 mcuiot.prototype.configurationRequestHandler = function(context, request, callback) {
 
     this.log("configurationRequestHandler");
@@ -331,4 +397,23 @@ function handleError(err) {
         default:
             console.warn(err);
     }
+}
+
+function roundInt( string ){
+  return Math.round(parseFloat(string));
+}
+
+
+function httpRequest(url, body, method, callback) {
+    request({
+            url: url,
+            body: body,
+            method: method,
+            rejectUnauthorized: false,
+            timeout: 10000
+
+        },
+        function(err, response, body) {
+            callback(err, response, body)
+        })
 }

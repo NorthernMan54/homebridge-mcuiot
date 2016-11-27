@@ -7,6 +7,9 @@ removing the need to manage devices via the config.json file.
 
 Full build instructions are included in my instructable http://www.instructables.com/id/Homebridge-MCU-IOT/
 
+Also the YL-69 Moisture sensor will create a phantom "Leak Sensor", and will
+trigger a Leak event when the amount of moisture detected crosses a defined threshold.
+
 # Installation
 
 1. Install homebridge using: npm install -g homebridge
@@ -57,6 +60,11 @@ then removes the device.
 
 }
 ```
+## Optional parameters
+debug - Enables more verbose logging of sensor data, noisy
+refresh - Refresh rate in seconds for data, defaults to 60 seconds
+leak - Threshold for Moisture sensor to trigger leak detected, defaults to 10%
+
 
 # Credits
 
