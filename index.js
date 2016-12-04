@@ -11,13 +11,15 @@
 //    "platform": "mcuiot",
 //    "name": "MCUIOT",
 //    "debug":    "True", // Optional enables debug output - noisy
-//    "refresh":  "60"    // Optional, device refresh time
+//    "refresh":  "60",   // Optional, device refresh time
+//    "leak":     "10"    // Optional, moisture level to trigger a leak alert
 // }],
 
 var request = require("request");
 var mdns = require('mdns');
 var inherits = require('util').inherits;
 var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
+var web = require('./lib/web.js');
 
 module.exports = function(homebridge) {
     Accessory = homebridge.platformAccessory;
@@ -38,6 +40,7 @@ function mcuiot(log, config, api) {
     this.debug = config['debug'] || false;
     this.refresh = config['refresh'] || 60; // Update every minute
     this.leak = config['leak'] || 10; // Leak detected threshold
+    this.port = config['port'] || 8080; // Default http port
 
     if ( this.debug )
       this.log("Settings: refresh=%s, leak=%s",this.refresh,this.leak);
@@ -105,6 +108,8 @@ mcuiot.prototype.didFinishLaunching = function() {
     }
 
     setInterval(this.devicePolling.bind(this), this.refresh * 1000);
+
+    var server = web.init(this.log,this.port,this.accessories);
 
 }
 
