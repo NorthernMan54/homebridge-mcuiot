@@ -405,7 +405,7 @@ function handleError(err) {
 }
 
 function roundInt( string ){
-  return Math.round(parseFloat(string));
+  return Math.round(parseFloat(string)*10)/10;
 }
 
 
