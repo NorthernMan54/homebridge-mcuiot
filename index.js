@@ -104,7 +104,7 @@ mcuiot.prototype.didFinishLaunching = function() {
 //            for (var i = 0; i < 5; i++) {
                 mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
                     if (!err) {
-                        i = 5;
+//                        i = 5;
                         self.addMcuAccessory(service, model);
                     }
                 })
