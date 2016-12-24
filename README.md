@@ -12,10 +12,10 @@ Also the YL-69 Moisture sensor will create a phantom "Leak Sensor", and will
 trigger a Leak event when the amount of moisture detected crosses a defined threshold.
 
 # Homekit Accessories Created
-## DHT - Combination Temperature / Humidity Sensor
-## BME - Combination Temperature / Humidity / barometric Pressure Sensor
-## YL - Water Leak Sensor
-## GD - Garage Door Opener - Only reporting on position
+- DHT - Combination Temperature / Humidity Sensor
+- BME - Combination Temperature / Humidity / Barometric Pressure Sensor
+- YL - Water Leak Sensor
+- GD - Garage Door Opener - Only reporting on position
 
 # Installation
 
