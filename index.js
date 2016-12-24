@@ -100,14 +100,15 @@ mcuiot.prototype.didFinishLaunching = function() {
             resolverSequence: sequence
         });
         browser.on('serviceUp', function(service) {
-
             self.log("Found MCUIOT device:", service.name);
-            mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
-                if (!err)
-                    self.addMcuAccessory(service, model);
-
-            })
-
+            for (i = 0; i < 5; i++) {
+                mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
+                    if (!err) {
+                        i = 5;
+                        self.addMcuAccessory(service, model);
+                    }
+                })
+            }
         });
         browser.on('serviceDown', function(service) {
             self.log("Service down: ", service);
@@ -444,7 +445,7 @@ mcuiot.prototype.deviceDown = function(name) {
     if (self.accessories[name]) {
         accessory = this.accessories[name];
         self.mcuModel(accessory.context.url, function(model) {
-            accessory.updateReachability(false);
+            //          accessory.updateReachability(false);
         })
     }
 }
