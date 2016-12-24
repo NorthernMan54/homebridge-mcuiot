@@ -101,7 +101,7 @@ mcuiot.prototype.didFinishLaunching = function() {
         });
         browser.on('serviceUp', function(service) {
             self.log("Found MCUIOT device:", service.name);
-            for (i = 0; i < 5; i++) {
+            for (var i = 0; i < 5; i++) {
                 mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
                     if (!err) {
                         i = 5;
