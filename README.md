@@ -1,14 +1,21 @@
 # homebridge-mcuiot
 
 This is a homebridge platform plugin, supporting multiple ESP8266 / nodemcu device's
-configured as temperature/humidity sensor.  Supported sensor's include DHT22, BME280
-and YL-69 Soil Moisture Sensor.  Also supports auto device discovery using mDNS,
+configured as remote sensor module.  Supported sensor's include DHT22, BME280
+and YL-69 Soil Moisture Sensor.  Included is also monitoring of a garage door position
+sensor. Also supports auto device discovery using mDNS,
 removing the need to manage devices via the config.json file.
 
 Full build instructions are included in my instructable http://www.instructables.com/id/Homebridge-MCU-IOT/
 
 Also the YL-69 Moisture sensor will create a phantom "Leak Sensor", and will
 trigger a Leak event when the amount of moisture detected crosses a defined threshold.
+
+# Homekit Accessories Created
+## DHT - Combination Temperature / Humidity Sensor
+## BME - Combination Temperature / Humidity / barometric Pressure Sensor
+## YL - Water Leak Sensor
+## GD - Garage Door Opener - Only reporting on position
 
 # Installation
 

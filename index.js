@@ -14,6 +14,14 @@
 //    "refresh":  "60",   // Optional, device refresh time
 //    "leak":     "10"    // Optional, moisture level to trigger a leak alert
 // }],
+//
+// Supports the following nodemcu based sensor types
+// DHT - DHT22 temperature / humidity sensor
+// BME - BME280 temperature / humidity / barometric pressure sensor
+// YL - YL-69 Soil Moisture Sensor - Implemented as a leak sensor
+// GD - Garage Door Open/Close Sensor
+
+'use strict';
 
 var request = require("request");
 var mdns = require('mdns');
@@ -26,7 +34,7 @@ module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     UUIDGen = homebridge.hap.uuid;
-    CommunityTypes = require('hap-nodejs-community-types')(homebridge)
+    CommunityTypes = require('hap-nodejs-community-types')(homebridge);
 
     fixInheritance(mcuiot.Moisture, Characteristic);
 
@@ -42,8 +50,8 @@ function mcuiot(log, config, api) {
     this.leak = config['leak'] || 10; // Leak detected threshold
     this.port = config['port'] || 8080; // Default http port
 
-    if ( this.debug )
-      this.log("Settings: refresh=%s, leak=%s",this.refresh,this.leak);
+    if (this.debug)
+        this.log("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
     this.accessories = {}; // MAC -> Accessory
 
@@ -65,6 +73,11 @@ mcuiot.prototype.configureAccessory = function(accessory) {
         accessory.getService(Service.TemperatureSensor)
         .getCharacteristic(Characteristic.CurrentTemperature)
         .on('get', self.getDHTTemperature.bind(self, accessory));
+
+    if (accessory.getService(Service.GarageDoorOpener))
+        accessory.getService(Service.GarageDoorOpener)
+        .getCharacteristic(Characteristic.TargetDoorState)
+        .on('set', self.setTargetDoorState.bind(self, accessory));
 
     var name = accessory.displayName;
     self.accessories[name] = accessory;
@@ -109,7 +122,7 @@ mcuiot.prototype.didFinishLaunching = function() {
 
     setInterval(this.devicePolling.bind(this), this.refresh * 1000);
 
-    var server = web.init(this.log,this.port,this.accessories);
+    var server = web.init(this.log, this.port, this.accessories);
 
 }
 
@@ -153,6 +166,15 @@ mcuiot.prototype.Identify = function(accessory, status, callback) {
 
 }
 
+mcuiot.prototype.setTargetDoorState = function(accessory, status, callback) {
+    var self = this;
+
+    self.log("setTargetDoorState Request", accessory.displayName, status);
+    callback(null, accessory.getService(Service.GarageDoorOpener)
+        .getCharacteristic(Characteristic.CurrentDoorState).value);
+
+}
+
 mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
     var self = this;
 
@@ -184,25 +206,64 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                 self.accessories[name].getService(Service.TemperatureSensor)
                     .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
 
+                if (response.Model.endsWith("GD")) {
+
+                    // Characteristic.CurrentDoorState.OPEN = 0; = Red Flashing
+                    // Characteristic.CurrentDoorState.CLOSED = 1; = Green On
+                    // Characteristic.CurrentDoorState.OPENING = 2;
+                    // Characteristic.CurrentDoorState.CLOSING = 3;
+                    // Characteristic.CurrentDoorState.STOPPED = 4;
+
+                    // Green Flashing = no contact with sensor
+
+                    // If its not open, then see what's up!!!
+
+                    if (response.Data.Green == "On") {
+                        if (self.debug) self.log("GarageDoor is Closed", name);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.ObstructionDetected, 0);
+                    } else if (response.Data.Green == "Flashing" || (response.Data.Green == "Off" && response.Data.Red == "Off")) {
+                        self.log("GarageDoor is at Fault", name);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.STOPPED);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.ObstructionDetected, 1);
+                    } else {
+                        if (self.debug) self.log("GarageDoor is Open", name);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.ObstructionDetected, 0);
+                    }
+                }
+
                 if (response.Model.endsWith("YL")) {
                     // Set moisture level for YL Models
                     var moist = (1024 - roundInt(response.Data.Moisture)) / 10.2;
                     self.accessories[name].getService(Service.TemperatureSensor)
                         .setCharacteristic("Moisture", roundInt(moist));
                     // Do we have a leak ?
-                    if( this.debug )
-                          this.log("Leak: %s > %s ?",moist,this.leak);
-                    if (moist > this.leak ) {
-                      if( this.debug )
-                        this.log("Leak");
+                    if (this.debug)
+                        this.log("Leak: %s > %s ?", moist, this.leak);
+                    if (moist > this.leak) {
+                        if (this.debug)
+                            this.log("Leak");
                         self.accessories[name].getService(Service.TemperatureSensor)
                             .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
                         self.accessories[name + "LS"].getService(Service.LeakSensor)
                             .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
 
                     } else {
-                      if( this.debug )
-                        this.log("No Leak");
+                        if (this.debug)
+                            this.log("No Leak");
                         self.accessories[name].getService(Service.TemperatureSensor)
                             .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
                         self.accessories[name + "LS"].getService(Service.LeakSensor)
@@ -280,16 +341,21 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
 
             this.addLeakSensor(device, model);
         }
+
+        if (model.endsWith("GD")) {
+            // Add Garage Door Position Sensor
+
+            this.addGarageDoorOpener(device, model);
+        }
+
         if (model.startsWith("BME")) {
             // Add BME280 Atmospheric pressure sensor;
             this.log("Adding BME", name);
-            accessory
-                .getService(Service.TemperatureSensor)
+            accessory.getService(Service.TemperatureSensor)
                 .addCharacteristic(CommunityTypes.AtmosphericPressureLevel);
         }
 
-        accessory
-            .getService(Service.AccessoryInformation)
+        accessory.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
             .setCharacteristic(Characteristic.Model, model + " " + name)
             .setCharacteristic(Characteristic.SerialNumber, url);
@@ -324,8 +390,40 @@ mcuiot.prototype.addLeakSensor = function(device, model) {
 
         accessory.addService(Service.LeakSensor, name);
 
-        accessory
-            .getService(Service.AccessoryInformation)
+        accessory.getService(Service.AccessoryInformation)
+            .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
+            .setCharacteristic(Characteristic.Model, model + " " + name)
+            .setCharacteristic(Characteristic.SerialNumber, url);
+
+        accessory.on('identify', self.Identify.bind(self, accessory));
+
+        self.accessories[name] = accessory;
+        self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
+    }
+}
+
+mcuiot.prototype.addGarageDoorOpener = function(device, model) {
+    var self = this;
+    var name = device.name + "GD";
+
+    var url = "http://" + device.host + ":" + device.port + "/";
+    //    self.url = url;
+    //    self.name = name;
+    var uuid = UUIDGen.generate(name);
+
+    if (!self.accessories[name]) {
+        var accessory = new Accessory(name, uuid, 10);
+
+        self.log("Adding MCUIOT-GD Device:", name, model);
+        accessory.reachable = true;
+        accessory.context.model = model;
+        accessory.context.url = url;
+
+        accessory.addService(Service.GarageDoorOpener, name)
+            .getCharacteristic(Characteristic.TargetDoorState)
+            .on('set', self.setTargetDoorState.bind(self, accessory));
+
+        accessory.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
             .setCharacteristic(Characteristic.Model, model + " " + name)
             .setCharacteristic(Characteristic.SerialNumber, url);
@@ -404,8 +502,8 @@ function handleError(err) {
     }
 }
 
-function roundInt( string ){
-  return Math.round(parseFloat(string)*10)/10;
+function roundInt(string) {
+    return Math.round(parseFloat(string) * 10) / 10;
 }
 
 
