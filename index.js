@@ -200,7 +200,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
             var response = JSON.parse(responseBody);
             if (self.debug) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
             if (roundInt(response.Data.Status) != 0) {
-                self.log("Error status %s", roundInt(response.Data.Status));
+                self.log("Error status %s %s", response.Hostname,roundInt(response.Data.Status));
                 callback(new Error("Nodemcu returned error"));
             } else {
 
@@ -443,7 +443,7 @@ mcuiot.prototype.addGarageDoorOpener = function(device, model) {
 mcuiot.prototype.deviceDown = function(name) {
     var self = this;
     if (self.accessories[name]) {
-        accessory = this.accessories[name];
+        var accessory = this.accessories[name];
         self.mcuModel(accessory.context.url, function(model) {
             //          accessory.updateReachability(false);
         })
