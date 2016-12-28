@@ -228,7 +228,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.ObstructionDetected, 0);
                     } else if (response.Data.Green == "Flashing" || (response.Data.Green == "Off" && response.Data.Red == "Off")) {
-                        self.log("GarageDoor is at Fault", name);
+                        self.log("GarageDoor %s is at Fault: Red is %s Green is ", name,response.Data.Red,response.Data.Green);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.STOPPED);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
