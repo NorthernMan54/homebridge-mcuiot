@@ -79,12 +79,19 @@ mcuiot.prototype.configureAccessory = function(accessory) {
         .getCharacteristic(Characteristic.TargetDoorState)
         .on('set', self.setTargetDoorState.bind(self, accessory));
 
+    if (accessory.getService(Service.Switch))
+        accessory.getService(Service.Switch)
+        .getCharacteristic(Characteristic.On)
+        .on('set', self.resetDevices.bind(self, accessory));
+
     var name = accessory.displayName;
     self.accessories[name] = accessory;
 }
 
 mcuiot.prototype.didFinishLaunching = function() {
     var self = this;
+
+    this.addResetSwitch();
 
     self.log("Starting mDNS listener");
     try {
@@ -101,14 +108,16 @@ mcuiot.prototype.didFinishLaunching = function() {
         });
         browser.on('serviceUp', function(service) {
             self.log("Found MCUIOT device:", service.name);
-//            for (var i = 0; i < 5; i++) {
-                mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
+            //            for (var i = 0; i < 5; i++) {
+            mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
                     if (!err) {
-//                        i = 5;
+                        //                        i = 5;
                         self.addMcuAccessory(service, model);
+                    } else {
+                        self.log("Error Adding MCUIOT Device", service.name, err);
                     }
                 })
-//            }
+                //            }
         });
         browser.on('serviceDown', function(service) {
             self.log("Service down: ", service);
@@ -145,25 +154,45 @@ mcuiot.prototype.devicePolling = function() {
 // Am using the Identify function to validate a device, and if it doesn't respond
 // remove it from the config
 
-mcuiot.prototype.Identify = function(accessory, status, callback) {
+mcuiot.prototype.Identify = function(accessory, status, callback, that) {
 
     var self = this;
+
+    if (that)
+        self = that;
 
     //  self.log("Object: %s", JSON.stringify(accessory, null, 4));
 
     self.log("Identify Request %s", accessory.displayName);
 
-    httpRequest(accessory.context.url, "", "GET", function(err, response, responseBody) {
-        if (err) {
-            self.log('HTTP get failed: %s', err.message);
-            self.log("Identify failed %s", accessory.displayName);
-            self.removeAccessory(accessory.displayName);
-            callback(err);
-        } else {
-            self.log("Identify successful %s", accessory.displayName);
-            callback();
-        }
-    }.bind(self));
+    if (accessory.context.url) {
+
+        httpRequest(accessory.context.url, "", "GET", function(err, response, responseBody) {
+            if (err) {
+                self.log("Identify failed %s", accessory.displayName, err.message);
+                self.removeAccessory(accessory.displayName);
+                callback(err, accessory.displayName);
+            } else {
+                self.log("Identify successful %s", accessory.displayName);
+                callback(null, accessory.displayName);
+            }
+        }.bind(self));
+    }
+
+}
+
+mcuiot.prototype.resetDevices = function(accessory, status, callback) {
+    var self = this;
+    this.log("Reset Devices", status);
+    callback(null, status);
+
+    for (var id in this.accessories) {
+        var device = this.accessories[id];
+        this.log("ID", id, device.displayName);
+        mcuiot.prototype.Identify(device, status, function(err, status) {
+            self.log("Done", status, err);
+        }, self);
+    }
 
 }
 
@@ -193,14 +222,14 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
     httpRequest(url, "", "GET", function(err, response, responseBody) {
         if (err) {
-            self.log('HTTP get failed: %s', err.message);
+            self.log('HTTP get failed:', name, err.message);
             //self.removeAccessory(name);
             callback(err);
         } else {
             var response = JSON.parse(responseBody);
             if (self.debug) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
             if (roundInt(response.Data.Status) != 0) {
-                self.log("Error status %s %s", response.Hostname,roundInt(response.Data.Status));
+                self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
                 callback(new Error("Nodemcu returned error"));
             } else {
 
@@ -228,7 +257,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.ObstructionDetected, 0);
                     } else if (response.Data.Green == "Flashing" || (response.Data.Green == "Off" && response.Data.Red == "Off")) {
-                        self.log("GarageDoor %s is at Fault: Red is %s Green is ", name,response.Data.Red,response.Data.Green);
+                        self.log("GarageDoor %s is at Fault: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.STOPPED);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
@@ -250,7 +279,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                     // Set moisture level for YL Models
                     var moist = (1024 - roundInt(response.Data.Moisture)) / 10.2;
                     self.accessories[name].getService(Service.TemperatureSensor)
-                        .setCharacteristic("Moisture", roundInt(moist));
+                        .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
                     // Do we have a leak ?
                     if (this.debug)
                         this.log("Leak: %s > %s ?", moist, this.leak);
@@ -290,7 +319,7 @@ mcuiot.prototype.mcuModel = function(url, callback) {
 
     httpRequest(url, "", "GET", function(err, response, responseBody) {
         if (err) {
-            console.log('HTTP get failed: %s', err.message);
+            //            console.log('HTTP get failed: %s', url,err.message);
             callback(err);
         } else {
             var response = JSON.parse(responseBody);
@@ -335,7 +364,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
             // Add YL-69 Moisture sensor
             accessory
                 .getService(Service.TemperatureSensor)
-                .addCharacteristic(mcuiot.Moisture);
+                .addCharacteristic(Characteristic.WaterLevel);
             accessory
                 .getService(Service.TemperatureSensor)
                 .addCharacteristic(Characteristic.LeakDetected);
@@ -387,7 +416,7 @@ mcuiot.prototype.addLeakSensor = function(device, model) {
         self.log("Adding MCUIOT-LS Device:", name, model);
         accessory.reachable = true;
         accessory.context.model = model;
-        accessory.context.url = url;
+        //        accessory.context.url = url;
 
         accessory.addService(Service.LeakSensor, name);
 
@@ -397,6 +426,34 @@ mcuiot.prototype.addLeakSensor = function(device, model) {
             .setCharacteristic(Characteristic.SerialNumber, url);
 
         accessory.on('identify', self.Identify.bind(self, accessory));
+
+        self.accessories[name] = accessory;
+        self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
+    }
+}
+
+mcuiot.prototype.addResetSwitch = function() {
+    var self = this;
+    var name = "MCUIOT Reset Switch";
+
+    var uuid = UUIDGen.generate(name);
+
+    if (!self.accessories[name]) {
+        var accessory = new Accessory(name, uuid, 10);
+
+        self.log("Adding Reset Switch:");
+        accessory.reachable = true;
+        //        accessory.context.model = model;
+        //        accessory.context.url = url;
+
+        accessory.addService(Service.Switch, name)
+            .getCharacteristic(Characteristic.On)
+            .on('set', self.resetDevices.bind(self, accessory));
+
+        accessory.getService(Service.AccessoryInformation)
+            .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
+            .setCharacteristic(Characteristic.Model, name)
+            .setCharacteristic(Characteristic.SerialNumber, "123456");
 
         self.accessories[name] = accessory;
         self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
@@ -418,7 +475,7 @@ mcuiot.prototype.addGarageDoorOpener = function(device, model) {
         self.log("Adding MCUIOT-GD Device:", name, model);
         accessory.reachable = true;
         accessory.context.model = model;
-        accessory.context.url = url;
+        //        accessory.context.url = url;
 
         accessory.addService(Service.GarageDoorOpener, name)
             .getCharacteristic(Characteristic.TargetDoorState)
@@ -452,11 +509,19 @@ mcuiot.prototype.deviceDown = function(name) {
 
 mcuiot.prototype.removeAccessory = function(name) {
     this.log("removeAccessory %s", name);
-    if (this.accessories[name]) {
-        accessory = this.accessories[name];
-        this.api.unregisterPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
-        delete this.accessories[name];
-        this.log("removedAccessory %s", name);
+    var extensions = {
+        a: "",
+        b: "LS",
+        c: "GD"
+    };
+    for (var extension in extensions) {
+        this.log("removeAccessory %s", name + extensions[extension]);
+        if (this.accessories[name + extensions[extension]]) {
+            var accessory = this.accessories[name + extensions[extension]];
+            this.api.unregisterPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
+            delete this.accessories[name + extensions[extension]];
+            this.log("removedAccessory %s", name + extensions[extension]);
+        }
     }
 }
 
@@ -480,6 +545,9 @@ mcuiot.prototype.configurationRequestHandler = function(context, request, callba
 }
 
 // Helpers, should move to a module
+
+
+
 
 function fixInheritance(subclass, superclass) {
     var proto = subclass.prototype;
