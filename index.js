@@ -161,7 +161,7 @@ mcuiot.prototype.Identify = function(accessory, status, callback, that) {
     if (that)
         self = that;
 
-    //  self.log("Object: %s", JSON.stringify(accessory, null, 4));
+    //    self.log("Object: %s", JSON.stringify(accessory, null, 4));
 
     self.log("Identify Request %s", accessory.displayName);
 
@@ -177,6 +177,8 @@ mcuiot.prototype.Identify = function(accessory, status, callback, that) {
                 callback(null, accessory.displayName);
             }
         }.bind(self));
+    } else {
+        callback(null, accessory.displayName);
     }
 
 }
@@ -186,12 +188,19 @@ mcuiot.prototype.resetDevices = function(accessory, status, callback) {
     this.log("Reset Devices", status);
     callback(null, status);
 
-    for (var id in this.accessories) {
-        var device = this.accessories[id];
-        this.log("ID", id, device.displayName);
-        mcuiot.prototype.Identify(device, status, function(err, status) {
-            self.log("Done", status, err);
-        }, self);
+    if (status == "1") {
+
+        for (var id in this.accessories) {
+            var device = this.accessories[id];
+            this.log("ID", id, device.displayName);
+            mcuiot.prototype.Identify(device, status, function(err, status) {
+                self.log("Done", status, err);
+            }, self);
+        }
+        setTimeout(function() {
+            accessory.getService(Service.Switch)
+                .setCharacteristic(Characteristic.On, 0);
+        }, 3000);
     }
 
 }
@@ -244,9 +253,17 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                     // Characteristic.CurrentDoorState.CLOSING = 3;
                     // Characteristic.CurrentDoorState.STOPPED = 4;
 
+                    //Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL = 0;
+                    //Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW = 1;
+
                     // Green Flashing = no contact with sensor
 
                     // If its not open, then see what's up!!!
+
+                    // Red Flashing, Green Off = Open
+                    // Red Off, Green On = Closed
+                    // Red Off / Tick, Green Flashing = ???
+
 
                     if (response.Data.Green == "On") {
                         if (self.debug) self.log("GarageDoor is Closed", name);
@@ -256,22 +273,38 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                             .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.ObstructionDetected, 0);
-                    } else if (response.Data.Green == "Flashing" || (response.Data.Green == "Off" && response.Data.Red == "Off")) {
-                        self.log("GarageDoor %s is at Fault: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-                            .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.STOPPED);
-                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-                            .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
-                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-                            .setCharacteristic(Characteristic.ObstructionDetected, 1);
-                    } else {
-                        if (self.debug) self.log("GarageDoor is Open", name);
+                            .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+                    } else if (response.Data.Red == "Flashing" && response.Data.Green == "Off") {
+                        self.log("GarageDoor %s is Open: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.ObstructionDetected, 0);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+                    } else if (response.Data.Green == "Flashing" || (response.Data.Green == "Off" && response.Data.Red == "Off")) {
+                        self.log("GarageDoor %s is sensor not reachable: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.ObstructionDetected, 0);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+                    } else {
+                        self.log("GarageDoor %s is at Fault: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.ObstructionDetected, 0);
+                        self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                            .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
                     }
                 }
 
@@ -480,6 +513,9 @@ mcuiot.prototype.addGarageDoorOpener = function(device, model) {
         accessory.addService(Service.GarageDoorOpener, name)
             .getCharacteristic(Characteristic.TargetDoorState)
             .on('set', self.setTargetDoorState.bind(self, accessory));
+
+        accessory.getService(Service.GarageDoorOpener)
+            .addCharacteristic(Characteristic.StatusLowBattery);
 
         accessory.getService(Service.AccessoryInformation)
             .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
