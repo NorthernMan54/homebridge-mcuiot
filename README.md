@@ -1,5 +1,7 @@
 # homebridge-mcuiot
 
+[![NPM Downloads](https://img.shields.io/npm/dm/homebridge-mcuiot.svg?style=flat)](https://npmjs.org/package/homebridge-mcuiot)
+
 This is a homebridge platform plugin, supporting multiple ESP8266 / nodemcu device's
 configured as remote sensor module.  Supported sensor's include DHT22, BME280
 and YL-69 Soil Moisture Sensor.  Included is also monitoring of a garage door position
