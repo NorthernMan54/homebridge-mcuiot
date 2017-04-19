@@ -23,6 +23,7 @@
 
 'use strict';
 
+var debug = require('debug')('MCUIOT');
 var request = require("request");
 var mdns = require('mdns');
 var inherits = require('util').inherits;
@@ -110,14 +111,14 @@ mcuiot.prototype.didFinishLaunching = function() {
             self.log("Found MCUIOT device:", service.name);
             //            for (var i = 0; i < 5; i++) {
             mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
-                    if (!err) {
-                        //                        i = 5;
-                        self.addMcuAccessory(service, model);
-                    } else {
-                        self.log("Error Adding MCUIOT Device", service.name, err);
-                    }
-                })
-                //            }
+                if (!err) {
+                    //                        i = 5;
+                    self.addMcuAccessory(service, model);
+                } else {
+                    self.log("Error Adding MCUIOT Device", service.name, err);
+                }
+            })
+            //            }
         });
         browser.on('serviceDown', function(service) {
             self.log("Service down: ", service);
@@ -316,6 +317,17 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                     // Do we have a leak ?
                     if (this.debug)
                         this.log("Leak: %s > %s ?", moist, this.leak);
+
+                    if (response.Data.Moisture == 1024) {
+                        debug('Leak Sensor Failed',name,response.Data.Moisture);
+                        self.accessories[name + "LS"].getService(Service.LeakSensor)
+                            .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+                    } else {
+                        self.accessories[name + "LS"].getService(Service.LeakSensor)
+                            .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+                    }
+
+
                     if (moist > this.leak) {
                         if (this.debug)
                             this.log("Leak");
