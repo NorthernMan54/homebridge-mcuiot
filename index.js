@@ -31,7 +31,7 @@ var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
 var web = require('./lib/web.js');
 var logger = require("mcuiot-logger").logger;
 
-var log_event_counter;
+var log_event_counter = {};
 
 module.exports = function(homebridge) {
     Accessory = homebridge.platformAccessory;
@@ -50,7 +50,7 @@ function mcuiot(log, config, api) {
     this.config = config;
 
     this.debug = config['debug'] || false;
-    this.refresh = config['refresh'] || 60; // Update every minute
+    this.refresh = config['refresh'] || 5; // Update every minute
     this.leak = config['leak'] || 10; // Leak detected threshold
     this.port = config['port'] || 8080; // Default http port
 
@@ -58,11 +58,13 @@ function mcuiot(log, config, api) {
         this.log("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
     this.spreadsheetId = config['spreadsheetId'];
-    if ( this.spreadsheetId ) {
-        this.logger = new logger( this.spreadsheetId );
+    if (this.spreadsheetId) {
+        this.logger = new logger(this.spreadsheetId);
     }
 
     this.accessories = {}; // MAC -> Accessory
+
+    this.log_event_counter = log_event_counter;
 
     if (api) {
         this.api = api;
@@ -245,8 +247,17 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
             callback(err);
         } else {
             var response = JSON.parse(responseBody);
-            if ( this.spreadsheetId ) {
-                this.logger.storeData(response);
+            if (this.spreadsheetId) {
+                debug(this.log_event_counter);
+                if (this.log_event_counter[response.Hostname]) {
+                    this.log_event_counter[response.Hostname] = 1 + this.log_event_counter[response.Hostname];
+                } else {
+                    this.log_event_counter[response.Hostname] = 1;
+                }
+                if (this.log_event_counter[response.Hostname] > 5) {
+                    this.log_event_counter[response.Hostname] = 0;
+                    this.logger.storeData(response);
+                }
             }
             if (self.debug) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
             if (roundInt(response.Data.Status) != 0) {
