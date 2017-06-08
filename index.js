@@ -50,7 +50,7 @@ function mcuiot(log, config, api) {
     this.config = config;
 
     this.debug = config['debug'] || false;
-    this.refresh = config['refresh'] || 5; // Update every minute
+    this.refresh = config['refresh'] || 60; // Update every minute
     this.leak = config['leak'] || 10; // Leak detected threshold
     this.port = config['port'] || 8080; // Default http port
 
