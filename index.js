@@ -31,8 +31,6 @@ var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
 var web = require('./lib/web.js');
 var logger = require("mcuiot-logger").logger;
 
-var log_event_counter = {};
-
 module.exports = function(homebridge) {
     Accessory = homebridge.platformAccessory;
     Service = homebridge.hap.Service;
@@ -49,13 +47,12 @@ function mcuiot(log, config, api) {
     this.log = log;
     this.config = config;
 
-    this.debug = config['debug'] || false;
+
     this.refresh = config['refresh'] || 60; // Update every minute
     this.leak = config['leak'] || 10; // Leak detected threshold
     this.port = config['port'] || 8080; // Default http port
 
-    if (this.debug)
-        this.log("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
+    debug("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
     this.spreadsheetId = config['spreadsheetId'];
     if (this.spreadsheetId) {
@@ -64,7 +61,7 @@ function mcuiot(log, config, api) {
 
     this.accessories = {}; // MAC -> Accessory
 
-    this.log_event_counter = log_event_counter;
+    this.log_event_counter = {};
 
     if (api) {
         this.api = api;
@@ -151,8 +148,8 @@ mcuiot.prototype.devicePolling = function() {
     for (var id in this.accessories) {
         var device = this.accessories[id];
         if (device.reachable) {
-            if (this.debug)
-                this.log("Poll:", id);
+
+                debug("Poll:", id);
             if (this.accessories[id].getService(Service.TemperatureSensor))
                 this.accessories[id].getService(Service.TemperatureSensor)
                 .getCharacteristic(Characteristic.CurrentTemperature)
@@ -254,7 +251,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                 } else {
                     this.log_event_counter[response.Hostname] = 1;
                 }
-                if (this.log_event_counter[response.Hostname] > 5) {
+                if (this.log_event_counter[response.Hostname] > 60) {
                     this.log_event_counter[response.Hostname] = 0;
                     this.logger.storeData(response);
                 }
@@ -337,8 +334,8 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                     self.accessories[name].getService(Service.TemperatureSensor)
                         .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
                     // Do we have a leak ?
-                    if (this.debug)
-                        this.log("Leak: %s > %s ?", moist, this.leak);
+
+                        debug("Leak: %s > %s ?", moist, this.leak);
 
                     if (response.Data.Moisture == 1024) {
                         debug('Leak Sensor Failed', name, response.Data.Moisture);
@@ -351,16 +348,16 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
 
                     if (moist > this.leak) {
-                        if (this.debug)
-                            this.log("Leak");
+
+                            debug("Leak");
                         self.accessories[name].getService(Service.TemperatureSensor)
                             .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
                         self.accessories[name + "LS"].getService(Service.LeakSensor)
                             .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
 
                     } else {
-                        if (this.debug)
-                            this.log("No Leak");
+
+                            debug("No Leak");
                         self.accessories[name].getService(Service.TemperatureSensor)
                             .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
                         self.accessories[name + "LS"].getService(Service.LeakSensor)

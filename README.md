@@ -70,10 +70,11 @@ then removes the device.
 }
 ```
 ## Optional parameters
-- debug - Enables more verbose logging of sensor data, noisy
+
 - refresh - Refresh rate in seconds for data, defaults to 60 seconds
 - leak - Threshold for Moisture sensor to trigger leak detected, defaults to 10%
 - port - Optional, port of web server to monitor devices, defaults to 8080
+- spreadsheetId - Google Sheets Spreadsheet id for data logging
 
 
 # Credits
