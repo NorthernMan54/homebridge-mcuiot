@@ -29,6 +29,7 @@ var mdns = require('mdns');
 var inherits = require('util').inherits;
 var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
 var web = require('./lib/web.js');
+var logger = require("mcuiot-logger").logger;
 
 module.exports = function(homebridge) {
     Accessory = homebridge.platformAccessory;
@@ -53,6 +54,11 @@ function mcuiot(log, config, api) {
 
     if (this.debug)
         this.log("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
+
+    this.spreadsheetId = config['spreadsheetId'];
+    if ( this.spreadsheetId ) {
+        this.logger = new logger( this.spreadsheetId );
+    }
 
     this.accessories = {}; // MAC -> Accessory
 
@@ -237,6 +243,9 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
             callback(err);
         } else {
             var response = JSON.parse(responseBody);
+            if ( this.spreadsheetId ) {
+                this.logger.storeData(response);
+            }
             if (self.debug) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
             if (roundInt(response.Data.Status) != 0) {
                 self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
@@ -319,7 +328,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                         this.log("Leak: %s > %s ?", moist, this.leak);
 
                     if (response.Data.Moisture == 1024) {
-                        debug('Leak Sensor Failed',name,response.Data.Moisture);
+                        debug('Leak Sensor Failed', name, response.Data.Moisture);
                         self.accessories[name + "LS"].getService(Service.LeakSensor)
                             .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
                     } else {
