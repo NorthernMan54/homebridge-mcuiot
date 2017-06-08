@@ -31,6 +31,8 @@ var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
 var web = require('./lib/web.js');
 var logger = require("mcuiot-logger").logger;
 
+var log_event_counter;
+
 module.exports = function(homebridge) {
     Accessory = homebridge.platformAccessory;
     Service = homebridge.hap.Service;
