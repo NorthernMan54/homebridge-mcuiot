@@ -198,9 +198,9 @@ mcuiot.prototype.resetDevices = function(accessory, status, callback) {
 
     if (status == "1") {
 
-        for (var id in this.accessories) {
-            var device = this.accessories[id];
-            this.log("ID", id, device.displayName);
+        for (var id in self.accessories) {
+            var device = self.accessories[id];
+            this.log("Reseting", id, device.displayName);
             mcuiot.prototype.Identify(device, status, function(err, status) {
                 self.log("Done", status, err);
             }, self);
@@ -245,13 +245,13 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
         } else {
             var response = JSON.parse(responseBody);
             if (this.spreadsheetId) {
-                debug(this.log_event_counter);
+//                debug(this.log_event_counter);
                 if (this.log_event_counter[response.Hostname]) {
                     this.log_event_counter[response.Hostname] = 1 + this.log_event_counter[response.Hostname];
                 } else {
                     this.log_event_counter[response.Hostname] = 1;
                 }
-                if (this.log_event_counter[response.Hostname] > 60) {
+                if (this.log_event_counter[response.Hostname] > 59) {
                     this.log_event_counter[response.Hostname] = 0;
                     this.logger.storeData(response);
                 }
