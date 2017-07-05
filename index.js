@@ -461,7 +461,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     } else {
         self.log("Skipping %s", name);
         accessory = this.accessories[name];
-        accessory.updateReachability(true);
+//        accessory.updateReachability(true);
     }
 }
 
