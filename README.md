@@ -74,7 +74,7 @@ then removes the device.
 - refresh - Refresh rate in seconds for data, defaults to 60 seconds
 - leak - Threshold for Moisture sensor to trigger leak detected, defaults to 10%
 - port - Optional, port of web server to monitor devices, defaults to 8080
-- spreadsheetId - Google Sheets Spreadsheet id for data logging
+- spreadsheetId ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567".
 
 # Optional - Enable access to Google Sheets to log data
 
