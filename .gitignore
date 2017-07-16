@@ -31,6 +31,5 @@ node_modules
 
 # Optional REPL history
 .node_repl_history
-publish.sh
 Sensor-Data-Logger-9c0a37f9a2dc.json
 client_secret.json
