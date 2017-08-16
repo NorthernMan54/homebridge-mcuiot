@@ -256,7 +256,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                     this.logger.storeData(response);
                 }
             }
-            if (self.debug) self.log("MCUIOT Response %s", JSON.stringify(response, null, 4));
+            debug("MCUIOT Response %s", JSON.stringify(response, null, 4));
             if (roundInt(response.Data.Status) != 0) {
                 self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
                 callback(new Error("Nodemcu returned error"));
@@ -286,7 +286,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
 
                     if (response.Data.Green == "On") {
-                        if (self.debug) self.log("GarageDoor is Closed", name);
+                        debug("GarageDoor is Closed", name);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
                             .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
                         self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
@@ -370,6 +370,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
                         .setCharacteristic(CommunityTypes.AtmosphericPressureLevel, roundInt(response.Data.Barometer));
                 }
 
+//                debug("Callback Temp",roundInt(response.Data.Temperature));
                 callback(null, roundInt(response.Data.Temperature));
             }
         }
@@ -461,6 +462,14 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     } else {
         self.log("Skipping %s", name);
         accessory = this.accessories[name];
+
+        // Fix for devices moving on the network
+        if ( accessory.context.url != url ) {
+          debug("URL Changed");
+          accessory.context.url = url;
+        } else {
+          debug("URL Same");
+        }
 //        accessory.updateReachability(true);
     }
 }
