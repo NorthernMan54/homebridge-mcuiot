@@ -62,20 +62,20 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 led.lua                   - Required
 main.lua                  - Required
 passwords.lua             - Required
-config.lua			          - Required
+config.lua                - Required
 setup.lua                 - Required
 test.lua                  - Required ( install last )
 
-init.lua			            - Only install after completing initial tests
+init.lua                  - Only install after completing initial tests
 
-bme.lua				            - Only required for the BME 280 Sensor
+bme.lua                   - Only required for the BME 280 Sensor
 
 GarageDoorOpenSensor.lua  - Only required for the Garage Door Monitor
-ads1115.lua			          - Only required for the Garage Door Monitor
+ads1115.lua               - Only required for the Garage Door Monitor
 
-README.md			            - Do not install
+README.md                 - Do not install
 nodeMCU-DHT22-YL-69.png   - Do not install
-bmetest.lua			          - Do not install
+bmetest.lua               - Do not install
 passwords_sample.lua      - Do not install
 ```
 
