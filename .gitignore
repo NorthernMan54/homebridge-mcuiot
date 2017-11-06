@@ -33,3 +33,4 @@ node_modules
 .node_repl_history
 Sensor-Data-Logger-9c0a37f9a2dc.json
 client_secret.json
+passwords.lua
