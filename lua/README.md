@@ -29,7 +29,7 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 1. Using http://nodemcu-build.com, create a custom firmware containing at least
    these modules:
 
-   adc,bme280,bit,dht,file,gpio,mdns,net,node,tmr,uart,wifi
+   adc,bit,bme280,dht,file,gpio,i2c,mdns,net,node,tmr,uart,websocket,wifi
 
 2. Please use esptool to install the float firmware onto your nodemcu.  There are alot of guides for this, so I won't repeat it here.
 
@@ -52,11 +52,30 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
    module.Model = "BME-GD"
    ```
 
-3.  
+3. In config.lua update sensor configurations if required.
 
 # Lua Program installation
 
 1. Please use ESPlorer to install the lua files on the device.
+
+led.lua                   - Required
+main.lua                  - Required
+passwords.lua             - Required
+config.lua			          - Required
+setup.lua                 - Required
+test.lua                  - Required ( install last )
+
+init.lua			            - Only install after completing initial tests
+
+bme.lua				            - Only required for the BME 280 Sensor
+
+GarageDoorOpenSensor.lua  - Only required for the Garage Door Monitor
+ads1115.lua			          - Only required for the Garage Door Monitor
+
+README.md			            - Do not install
+nodeMCU-DHT22-YL-69.png   - Do not install
+bmetest.lua			          - Do not install
+passwords_sample.lua      - Do not install
 
 2. Reboot your device
 
@@ -65,24 +84,65 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 ```
 NodeMCU custom build by frightanic.com
 	branch: master
-	commit: cdaf6344457ae427d8c06ac28a645047f9e0f588
+	commit: c8ac5cfb912ff206b03dd7c60ffbb2dafb83fe5e
 	SSL: false
-	modules: adc,am2320,bit,dht,file,gpio,mdns,net,node,tmr,uart,wifi
- build 	built on: 2016-06-27 22:58
- powered by Lua 5.1.4 on SDK 1.5.1(e67da894)
+	modules: adc,bit,bme280,dht,file,gpio,i2c,mdns,net,node,tmr,uart,websocket,wifi
+ build 	built on: 2017-07-24 22:46
+ powered by Lua 5.1.4 on SDK 2.1.0(116b762)
+Heap Available: -c 37392
+Heap Available: -l 34304
+Heap Available: -b 30832
+Heap Available: -m 28496
+Heap Available: -setup 24064
 Booting...
+Heap Available: -boot 23808
 Setting Init Timer
 Configuring Wifi ...
-> Connecting to XXXXXXX ...
+Heap Available: -start 23408
+> print(uart.setup(0, 115200, 8, 0, 1, 1 ))
+115200
+>
+Communication with MCU...
+Got answer! AutoDetect firmware...
+Communication with MCU established.
+Can't autodetect firmware, because proper answer not received (may be unknown firmware).
+Please, reset module or continue.
+
+> Connecting to 67 Bonacres ...
 IP unavailable, Waiting...
 
 ====================================
+Name is:         NODE-86695
 ESP8266 mode is: 1
-MAC address is: 5e:cf:7f:18:a6:b3
-IP is 192.168.1.146
+MAC address is:  5e:cf:7f:86:06:95
+IP is:           192.168.1.176
 ====================================
 Registering service dht22 with mDNS
 Web Server Started
+GET / HTTP/1.1
+host: node-86695.local.:80
+Connection: close
+
+
+Status: 0
+Temp: 23.89
+Humi: 48.279
+Moisture: 1024
+Baro: 1011.34
+Dew: 12.31
+
+GET / HTTP/1.1
+host: node-86695.local.:80
+Connection: close
+
+
+Status: 0
+Temp: 23.88
+Humi: 48.267
+Moisture: 1024
+Baro: 1011.331
+Dew: 12.3
+
 ```
 
 4. To test the device, I use curl on OSX ie
