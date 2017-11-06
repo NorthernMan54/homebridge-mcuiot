@@ -58,6 +58,7 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 
 1. Please use ESPlorer to install the lua files on the device.
 
+```
 led.lua                   - Required
 main.lua                  - Required
 passwords.lua             - Required
@@ -76,6 +77,7 @@ README.md			            - Do not install
 nodeMCU-DHT22-YL-69.png   - Do not install
 bmetest.lua			          - Do not install
 passwords_sample.lua      - Do not install
+```
 
 2. Reboot your device
 
