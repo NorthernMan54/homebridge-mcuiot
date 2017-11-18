@@ -25,6 +25,4 @@ module.ID = wifi.sta.gethostname()
 module.ledRed = 0 -- gpio16
 module.ledBlue = 4 -- gpio2
 
-module.Version = "1.4"
-
 return module
