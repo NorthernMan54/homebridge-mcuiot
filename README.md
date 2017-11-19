@@ -60,7 +60,13 @@ then removes the device.
 
 "platforms": [
 	{ "platform":	"mcuiot",
-    "name":     "MCUIOT" }
+    "name":     "MCUIOT",
+    "aliases": {
+      "NODE-2BA4CB": "Front Porch",
+      "NODE-8F8FE": "Cold Cellar",
+      "NODE-DC4492": "Office",
+      "NODE-DC4492GD": "Garage Door"
+    } }
 	 ],
 
 "accessories": [ ]
@@ -73,6 +79,7 @@ then removes the device.
 - leak - Threshold for Moisture sensor to trigger leak detected, defaults to 10%
 - port - Optional, port of web server to monitor devices, defaults to 8080
 - spreadsheetId ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567".
+- aliases - Friendly names for your nodemcu's
 
 # Optional - Enable access to Google Sheets to log data
 

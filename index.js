@@ -11,6 +11,7 @@
 //    "name": "MCUIOT",
 //    "refresh":  "60",   // Optional, device refresh time
 //    "leak":     "10",    // Optional, moisture level to trigger a leak alert
+//    "spreadsheetId": "xxxxxxxxxx",    // Optional - Google sheet to log data
 //    "aliases": {
 //      "NODE-2BA0FF": "Porch Motion"
 //    }
