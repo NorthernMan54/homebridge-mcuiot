@@ -30,9 +30,10 @@ var debug = require('debug')('MCUIOT');
 var request = require("request");
 var mdns = require('mdns');
 var inherits = require('util').inherits;
-var Accessory, Service, Characteristic, UUIDGen, CommunityTypes;
+var Accessory, Service, Characteristic, UUIDGen, CommunityTypes, FakeGatoHistoryService;
 var web = require('./lib/web.js');
 var logger = require("mcuiot-logger").logger;
+const moment = require('moment');
 
 module.exports = function(homebridge) {
   Accessory = homebridge.platformAccessory;
@@ -40,6 +41,7 @@ module.exports = function(homebridge) {
   Characteristic = homebridge.hap.Characteristic;
   UUIDGen = homebridge.hap.uuid;
   CommunityTypes = require('hap-nodejs-community-types')(homebridge);
+  FakeGatoHistoryService = require('fakegato-history')(homebridge);
 
   fixInheritance(mcuiot.Moisture, Characteristic);
 
@@ -269,6 +271,9 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
         callback(new Error("Nodemcu returned error"));
       } else {
 
+        debug(JSON.stringify(accessory, null, 4));
+        accessory.loggingService.addEntry({time: moment().unix(), temp:roundInt(response.Data.Temperature), pressure:roundInt(response.Data.Barometer), humidity:roundInt(response.Data.Humidity)});
+
         self.accessories[name].getService(Service.TemperatureSensor)
           .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
 
@@ -469,6 +474,9 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
       .setCharacteristic(Characteristic.SerialNumber, url);
 
     accessory.on('identify', self.Identify.bind(self, accessory));
+
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
+    accessory.addService(accessory.loggingService);
 
     self.accessories[name] = accessory;
     self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
