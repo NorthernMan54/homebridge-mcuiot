@@ -86,10 +86,18 @@ mcuiot.prototype.configureAccessory = function(accessory) {
 
   accessory.on('identify', self.Identify.bind(self, accessory));
 
-  if (accessory.getService(Service.TemperatureSensor))
+  if (accessory.getService(Service.TemperatureSensor)) {
     accessory.getService(Service.TemperatureSensor)
-    .getCharacteristic(Characteristic.CurrentTemperature)
-    .on('get', self.getDHTTemperature.bind(self, accessory));
+      .getCharacteristic(Characteristic.CurrentTemperature)
+      .on('get', self.getDHTTemperature.bind(self, accessory));
+    accessory.log = this.log;
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
+
+    this.getDHTTemperature(accessory, function(err, temp) {
+      accessory.getService(Service.TemperatureSensor).setCharacteristic(Characteristic.CurrentTemperature, temp);
+    }.bind(this));
+
+  }
 
   if (accessory.getService(Service.GarageDoorOpener))
     accessory.getService(Service.GarageDoorOpener)
@@ -158,11 +166,15 @@ mcuiot.prototype.devicePolling = function() {
     var device = this.accessories[id];
     if (device.reachable) {
 
-      debug("Poll:", id);
-      if (this.accessories[id].getService(Service.TemperatureSensor))
-        this.accessories[id].getService(Service.TemperatureSensor)
-        .getCharacteristic(Characteristic.CurrentTemperature)
-        .getValue();
+      //      debug("Poll:", id);
+      if (this.accessories[id].getService(Service.TemperatureSensor)) {
+        this.getDHTTemperature(device, function(err, temp) {
+          device.getService(Service.TemperatureSensor).setCharacteristic(Characteristic.CurrentTemperature, temp);
+        }.bind(device));
+      }
+      //      this.accessories[id].getService(Service.TemperatureSensor)
+      //      .getCharacteristic(Characteristic.CurrentTemperature)
+      //      .getValue();
 
     }
   }
@@ -234,8 +246,8 @@ mcuiot.prototype.setTargetDoorState = function(accessory, status, callback) {
 mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
   var self = this;
 
-  if (!self.url) {
-    self.log.warn("Ignoring request; No url defined.");
+  if (!accessory.context.url) {
+    this.log.warn("Ignoring request; No url defined.");
     callback(new Error("No url defined."));
     return;
   }
@@ -253,27 +265,35 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
       callback(err);
     } else {
       var response = JSON.parse(responseBody);
-      if (this.spreadsheetId) {
-        //                debug(this.log_event_counter);
-        if (this.log_event_counter[response.Hostname]) {
-          this.log_event_counter[response.Hostname] = 1 + this.log_event_counter[response.Hostname];
-        } else {
-          this.log_event_counter[response.Hostname] = 1;
-        }
-        if (this.log_event_counter[response.Hostname] > 59) {
-          this.log_event_counter[response.Hostname] = 0;
+
+      //                debug(this.log_event_counter);
+      if (this.log_event_counter[response.Hostname] === undefined) {
+        this.log_event_counter[response.Hostname] = 0;
+      } else {
+        this.log_event_counter[response.Hostname] = 1 + this.log_event_counter[response.Hostname];
+      }
+      if (this.log_event_counter[response.Hostname] > 59) {
+        this.log_event_counter[response.Hostname] = 0;
+        if (this.spreadsheetId) {
           this.logger.storeData(response);
         }
+
       }
-      debug("MCUIOT Response %s", JSON.stringify(response, null, 4));
+      // debug("MCUIOT Response %s", response);
       if (roundInt(response.Data.Status) != 0) {
         self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
         callback(new Error("Nodemcu returned error"));
       } else {
 
-        debug(JSON.stringify(accessory, null, 4));
-        accessory.loggingService.addEntry({time: moment().unix(), temp:roundInt(response.Data.Temperature), pressure:roundInt(response.Data.Barometer), humidity:roundInt(response.Data.Humidity)});
-
+        //  debug(this.log_event_counter[response.Hostname], this.log_event_counter[response.Hostname] % 10);
+        if (!(this.log_event_counter[response.Hostname] % 10)) {
+          accessory.loggingService.addEntry({
+            time: moment().unix(),
+            temp: roundInt(response.Data.Temperature),
+            pressure: roundInt(response.Data.Barometer),
+            humidity: roundInt(response.Data.Humidity)
+          });
+        }
         self.accessories[name].getService(Service.TemperatureSensor)
           .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
 
@@ -298,7 +318,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
 
           if (response.Data.Green == "On") {
-            debug("GarageDoor is Closed", name);
+          //  debug("GarageDoor is Closed", name);
             self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
               .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
             self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
@@ -475,6 +495,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
 
     accessory.on('identify', self.Identify.bind(self, accessory));
 
+    accessory.log = this.log;
     accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
     accessory.addService(accessory.loggingService);
 
@@ -602,8 +623,6 @@ mcuiot.prototype.addGarageDoorOpener = function(device, model) {
     self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
   }
 }
-
-
 
 // Mark down accessories as unreachable
 
