@@ -6,7 +6,7 @@ This is a homebridge platform plugin, supporting multiple ESP8266 / nodemcu devi
 configured as remote sensor module.  Supported sensor's include DHT22, BME280
 and YL-69 Soil Moisture Sensor.  Included is also monitoring of a garage door position
 sensor. Also supports auto device discovery using mDNS,
-removing the need to manage devices via the config.json file.
+removing the need to manage devices via the config.json file. Historical display of temperature data is available via the Eve app.
 
 Full build instructions are included in my instructable http://www.instructables.com/id/Homebridge-MCU-IOT/
 
@@ -124,4 +124,5 @@ e. Copy the code you're given, paste it into the command-line prompt, and press 
 
 # Credits
 
-- Homebridge communityTypes - Homespun and SphtKr
+* Homebridge communityTypes - Homespun and SphtKr
+* simont77 - History Service
