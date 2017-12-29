@@ -86,24 +86,9 @@ mcuiot.prototype.configureAccessory = function(accessory) {
   accessory.on('identify', self.Identify.bind(self, accessory));
 
   if (accessory.getService(Service.TemperatureSensor)) {
-    //    accessory.getService(Service.TemperatureSensor)
-    //      .getCharacteristic(Characteristic.CurrentTemperature)
-    //      .on('get', self.getDHTTemperature.bind(self, accessory));
 
-    accessory.getService(Service.TemperatureSensor).log = this.log;
-    debug("Object: %s", JSON.stringify(accessory, null, 4));
-    debug("--------------------------------- Before");
-    var t = accessory.getService(accessory.context.displayName + " History");
-    debug("Object: %s", JSON.stringify(t, null, 4));
-    debug("--------------------------------- Object to remove");
-    accessory.removeService(t);
-    debug("Object: %s", JSON.stringify(accessory, null, 4));
-    debug("--------------------------------- After");
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory.getService(Service.TemperatureSensor));
-    debug("Object: %s", JSON.stringify(accessory.loggingService, null, 4));
-    debug("--------------------------------- Before Add");
-    accessory.addService(accessory.loggingService);
-    debug("Object: %s", JSON.stringify(accessory.loggingService, null, 4));
+    accessory.log = this.log;
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
 
     this.getDHTTemperature(accessory, function(err, temp) {
       this.getService(Service.TemperatureSensor).setCharacteristic(Characteristic.CurrentTemperature, temp);
@@ -501,9 +486,8 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
 
     accessory.on('identify', self.Identify.bind(self, accessory));
 
-    accessory.getService(Service.TemperatureSensor).log = this.log;
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory.getService(Service.TemperatureSensor));
-    accessory.addService(accessory.loggingService);
+    accessory.log = this.log;
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
 
     self.accessories[name] = accessory;
     self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
