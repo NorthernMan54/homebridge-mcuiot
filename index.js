@@ -34,6 +34,9 @@ var Accessory, Service, Characteristic, UUIDGen, CustomCharacteristic, FakeGatoH
 var web = require('./lib/web.js');
 var logger = require("mcuiot-logger").logger;
 const moment = require('moment');
+var os = require("os");
+var hostname = os.hostname();
+
 
 module.exports = function(homebridge) {
   Accessory = homebridge.platformAccessory;
@@ -91,7 +94,11 @@ mcuiot.prototype.configureAccessory = function(accessory) {
     accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
 
     this.getDHTTemperature(accessory, function(err, temp) {
-      this.getService(Service.TemperatureSensor).setCharacteristic(Characteristic.CurrentTemperature, temp);
+      if(err)
+        {
+          temp = err;
+        }
+      this.getService(Service.TemperatureSensor).getCharacteristic(Characteristic.CurrentTemperature).updateValue(temp);
     }.bind(accessory));
 
   }
@@ -136,7 +143,7 @@ mcuiot.prototype.didFinishLaunching = function() {
         if (!err) {
           self.addMcuAccessory(service, model);
         } else {
-          self.log("Error Adding MCUIOT Device", service.name, err);
+          self.log("Error Adding MCUIOT Device", service.name, err.message);
         }
       });
       //            }
@@ -164,7 +171,11 @@ mcuiot.prototype.devicePolling = function() {
     if (device.reachable) {
       if (device.getService(Service.TemperatureSensor)) {
         this.getDHTTemperature(device, function(err, temp) {
-          this.getService(Service.TemperatureSensor).setCharacteristic(Characteristic.CurrentTemperature, temp);
+          if(err)
+            {
+              temp = err;
+            }
+          this.getService(Service.TemperatureSensor).getCharacteristic(Characteristic.CurrentTemperature).updateValue(temp);
         }.bind(device));
       }
     }
@@ -482,7 +493,8 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     accessory.getService(Service.AccessoryInformation)
       .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
       .setCharacteristic(Characteristic.Model, model)
-      .setCharacteristic(Characteristic.SerialNumber, name);
+      .setCharacteristic(Characteristic.SerialNumber, hostname+"-"+name)
+      .setCharacteristic(Characteristic.FirmwareRevision, require('./package.json').version);
 
     accessory.on('identify', self.Identify.bind(self, accessory));
 
