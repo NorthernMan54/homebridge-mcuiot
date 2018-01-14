@@ -94,10 +94,9 @@ mcuiot.prototype.configureAccessory = function(accessory) {
     accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
 
     this.getDHTTemperature(accessory, function(err, temp) {
-      if(err)
-        {
-          temp = err;
-        }
+      if (err) {
+        temp = err;
+      }
       this.getService(Service.TemperatureSensor).getCharacteristic(Characteristic.CurrentTemperature).updateValue(temp);
     }.bind(accessory));
 
@@ -171,10 +170,9 @@ mcuiot.prototype.devicePolling = function() {
     if (device.reachable) {
       if (device.getService(Service.TemperatureSensor)) {
         this.getDHTTemperature(device, function(err, temp) {
-          if(err)
-            {
-              temp = err;
-            }
+          if (err) {
+            temp = err;
+          }
           this.getService(Service.TemperatureSensor).getCharacteristic(Characteristic.CurrentTemperature).updateValue(temp);
         }.bind(device));
       }
@@ -287,14 +285,14 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
       } else {
 
         //  debug(this.log_event_counter[response.Hostname], this.log_event_counter[response.Hostname] % 10);
-        if (!(this.log_event_counter[response.Hostname] % 10)) {
-          accessory.loggingService.addEntry({
-            time: moment().unix(),
-            temp: roundInt(response.Data.Temperature),
-            pressure: roundInt(response.Data.Barometer),
-            humidity: roundInt(response.Data.Humidity)
-          });
-        }
+
+        accessory.loggingService.addEntry({
+          time: moment().unix(),
+          temp: roundInt(response.Data.Temperature),
+          pressure: roundInt(response.Data.Barometer),
+          humidity: roundInt(response.Data.Humidity)
+        });
+
         accessory.getService(Service.TemperatureSensor)
           .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
 
@@ -493,7 +491,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     accessory.getService(Service.AccessoryInformation)
       .setCharacteristic(Characteristic.Manufacturer, "MCUIOT")
       .setCharacteristic(Characteristic.Model, model)
-      .setCharacteristic(Characteristic.SerialNumber, hostname+"-"+name)
+      .setCharacteristic(Characteristic.SerialNumber, hostname + "-" + name)
       .setCharacteristic(Characteristic.FirmwareRevision, require('./package.json').version);
 
     accessory.on('identify', self.Identify.bind(self, accessory));
