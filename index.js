@@ -91,7 +91,7 @@ mcuiot.prototype.configureAccessory = function(accessory) {
   if (accessory.getService(Service.TemperatureSensor)) {
 
     accessory.log = this.log;
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
 
     this.getDHTTemperature(accessory, function(err, temp) {
       if (err) {
@@ -497,7 +497,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     accessory.on('identify', self.Identify.bind(self, accessory));
 
     accessory.log = this.log;
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory);
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
 
     self.accessories[name] = accessory;
     self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
