@@ -34,3 +34,4 @@ node_modules
 Sensor-Data-Logger-9c0a37f9a2dc.json
 client_secret.json
 passwords.lua
+package-lock.json
