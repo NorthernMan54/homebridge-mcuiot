@@ -43,7 +43,7 @@ devices.
 
 Devices are removed using the 'Identify Accessory' function.  When you use the
 function from your app, it checks to see if the device is truly not responding
-then removes the device.
+then removes the device.  The identity function is not available in the Home app, but in others.
 
 # Configuration
 
@@ -82,7 +82,7 @@ then removes the device.
 - spreadsheetId ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567".
 - aliases - Friendly names for your nodemcu's
 
-# Optional - Enable access to Google Sheets to log data
+# Optional - Enable access to Google to log data and store graphing data
 
 This presumes you already have a google account, and have access to google drive/sheets already
 

@@ -11,6 +11,7 @@
 //    "name": "MCUIOT",
 //    "refresh":  "60",   // Optional, device refresh time
 //    "leak":     "10",    // Optional, moisture level to trigger a leak alert
+//    "storage":  "fs",
 //    "spreadsheetId": "xxxxxxxxxx",    // Optional - Google sheet to log data
 //    "aliases": {
 //      "NODE-2BA0FF": "Porch Motion"
@@ -36,7 +37,6 @@ var logger = require("mcuiot-logger").logger;
 const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
-
 
 module.exports = function(homebridge) {
   Accessory = homebridge.platformAccessory;
