@@ -11,6 +11,7 @@
 //    "name": "MCUIOT",
 //    "refresh":  "60",   // Optional, device refresh time
 //    "leak":     "10",    // Optional, moisture level to trigger a leak alert
+//    "storage":  "fs",
 //    "spreadsheetId": "xxxxxxxxxx",    // Optional - Google sheet to log data
 //    "aliases": {
 //      "NODE-2BA0FF": "Porch Motion"
@@ -37,7 +38,6 @@ const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
 
-
 module.exports = function(homebridge) {
   Accessory = homebridge.platformAccessory;
   Service = homebridge.hap.Service;
@@ -58,6 +58,7 @@ function mcuiot(log, config, api) {
   this.refresh = config['refresh'] || 60; // Update every minute
   this.leak = config['leak'] || 10; // Leak detected threshold
   this.port = config['port'] || 8080; // Default http port
+  this.storage = config['storage'] || "fs";
 
   debug("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
@@ -91,7 +92,11 @@ mcuiot.prototype.configureAccessory = function(accessory) {
   if (accessory.getService(Service.TemperatureSensor)) {
 
     accessory.log = this.log;
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
+//    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,{
+      storage: this.storage,
+      minutes: this.refresh * 10/60
+    });
 
     this.getDHTTemperature(accessory, function(err, temp) {
       if (err) {
@@ -497,7 +502,11 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     accessory.on('identify', self.Identify.bind(self, accessory));
 
     accessory.log = this.log;
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
+//    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,{
+      storage: this.storage,
+      minutes: this.refresh * 10/60
+    });
 
     self.accessories[name] = accessory;
     self.api.registerPlatformAccessories("homebridge-mcuiot", "mcuiot", [accessory]);
