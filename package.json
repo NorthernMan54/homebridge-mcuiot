@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "debug": "^2.6.9",
-    "fakegato-history": "simont77/fakegato-history#fakegato-storage",
+    "fakegato-history": "^=0.4.0",
     "httpdispatcher": "^2.1.1",
     "mcuiot-logger": "0.0.2",
     "mdns": "^2.3.4",

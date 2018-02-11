@@ -58,6 +58,7 @@ function mcuiot(log, config, api) {
   this.refresh = config['refresh'] || 60; // Update every minute
   this.leak = config['leak'] || 10; // Leak detected threshold
   this.port = config['port'] || 8080; // Default http port
+  this.storage = config['storage'] || "fs";
 
   debug("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
@@ -93,8 +94,8 @@ mcuiot.prototype.configureAccessory = function(accessory) {
     accessory.log = this.log;
 //    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
     accessory.loggingService = new FakeGatoHistoryService("weather", accessory,{
-      storage: 'googleDrive',
-      minutes: 1
+      storage: this.storage,
+      minutes: this.refresh * 10/60
     });
 
     this.getDHTTemperature(accessory, function(err, temp) {
@@ -503,8 +504,8 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     accessory.log = this.log;
 //    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
     accessory.loggingService = new FakeGatoHistoryService("weather", accessory,{
-      storage: 'googleDrive',
-      minutes: 1
+      storage: this.storage,
+      minutes: this.refresh * 10/60
     });
 
     self.accessories[name] = accessory;
