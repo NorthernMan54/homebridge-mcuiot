@@ -26,7 +26,7 @@ trigger a Leak event when the amount of moisture detected crosses a defined thre
 3. Update your configuration file, see sample-config.json in this directory.
 4. Install nodemcu-dht-yl69-mdns on your Nodemcu devices, and connect a DHT22 or BME280
 Temperature/Humidity and YL-69 Soil Moisture sensors.  See
-https://github.com/NorthernMan54/homebridge-mcuiot/tree/master/lua for details on the
+https://github.com/NorthernMan54/homebridge-mcuiot/tree/master/nodemcu for details on the
 NodeMCU build and configuration.
 
 # Device management
