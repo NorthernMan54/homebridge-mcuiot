@@ -30,14 +30,14 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 
 ![DHT-YL](ESP%208266%20-%20MCUIOT%20-%20DHT-YL_bb.jpg)
 
-![DHT-YL](ESP 8266 - MCUIOT - DHT-YL_schem.jpg)
+![DHT-YL](ESP%208266%20-%20MCUIOT%20-%20DHT-YL_schem.jpg)
 
 
 ## BME-YL
 
-![BME-YL](ESP 8266 - MCUIOT - BME-YL_bb.jpg)
+![BME-YL](ESP%208266%20-%20MCUIOT%20-%20BME-YL_bb.jpg)
 
-![BME-YL](ESP 8266 - MCUIOT - BME-YL_schem.jpg)
+![BME-YL](ESP%208266%20-%20MCUIOT%20-%20BME-YL_schem.jpg)
 
 # nodeMCU Firmware
 
