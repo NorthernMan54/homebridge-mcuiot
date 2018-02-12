@@ -28,7 +28,7 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 
 ## DHT-YL
 
-![DHT-YL](ESP 8266 - MCUIOT - DHT-YL_bb.jpg)
+![DHT-YL](ESP%208266%20-%20MCUIOT%20-%20DHT-YL_bb.jpg)
 
 ![DHT-YL](ESP 8266 - MCUIOT - DHT-YL_schem.jpg)
 
