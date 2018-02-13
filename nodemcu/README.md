@@ -39,6 +39,12 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 
 ![BME-YL](ESP%208266%20-%20MCUIOT%20-%20BME-YL_schem.jpg)
 
+## BME-GD
+
+![BME-GD](ESP%208266%20-%20MCUIOT%20-%20BME-GD_bb.jpg)
+
+![BME-GD](ESP%208266%20-%20MCUIOT%20-%20BME-GD_schem.jpg)
+
 # nodeMCU Firmware
 
 1. Using http://nodemcu-build.com, create a custom firmware containing at least
