@@ -4,6 +4,9 @@ local module = {}
 module.Model = "BME"
 module.Version = "1.4"
 
+-- LED state
+module.ledState = 1 -- 0: fully disabled, 1: LEDs on, 2: Connected off (Boot/Error only)
+
 -- BME280 settings
 
 module.bme280scl = 5  -- D5

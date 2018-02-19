@@ -3,6 +3,9 @@ local module = {}
 local mode = 0
 
 local function start()
+  if config.ledState == 0 then
+    return
+  end
 
   gpio.mode(config.ledBlue, gpio.OUTPUT)
   gpio.mode(config.ledRed, gpio.OUTPUT)
@@ -16,8 +19,13 @@ local function start()
           gpio.write(config.ledRed, gpio.HIGH)
         end
         if mode == 1 then
-          gpio.write(config.ledBlue, gpio.LOW)
-          gpio.write(config.ledRed, gpio.HIGH)
+          if config.ledState == 1 then
+            gpio.write(config.ledBlue, gpio.LOW)
+            gpio.write(config.ledRed, gpio.HIGH)
+          else
+            gpio.write(config.ledBlue, gpio.HIGH)
+            gpio.write(config.ledRed, gpio.HIGH)
+          end
         end
         if mode == 2 then
           gpio.write(config.ledBlue, gpio.HIGH)
@@ -57,6 +65,10 @@ function module.error()
 end
 
 function module.flashRed()
+  if config.ledState == 0 then
+    return
+  end
+  
   gpio.write(config.ledRed, gpio.LOW)
   tmr.alarm(1,200,tmr.ALARM_SINGLE,function()
       gpio.write(config.ledRed, gpio.HIGH)
