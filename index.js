@@ -59,6 +59,7 @@ function mcuiot(log, config, api) {
   this.leak = config['leak'] || 10; // Leak detected threshold
   this.port = config['port'] || 8080; // Default http port
   this.storage = config['storage'] || "fs";
+  this.leakDetected = Date.now(); // Leak detection flapping fix
 
   debug("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
@@ -92,10 +93,10 @@ mcuiot.prototype.configureAccessory = function(accessory) {
   if (accessory.getService(Service.TemperatureSensor)) {
 
     accessory.log = this.log;
-//    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,{
+    //    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory, {
       storage: this.storage,
-      minutes: this.refresh * 10/60
+      minutes: this.refresh * 10 / 60
     });
 
     this.getDHTTemperature(accessory, function(err, temp) {
@@ -385,6 +386,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
           if (moist > this.leak) {
 
+            this.leakDetected = Date.now() + 15 * 60 * 1000; // Don't clear alerts for 15 minutes
             debug("Leak");
             self.accessories[name].getService(Service.TemperatureSensor)
               .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
@@ -394,10 +396,13 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
           } else {
 
             debug("No Leak");
-            self.accessories[name].getService(Service.TemperatureSensor)
-              .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
-            self.accessories[name + "LS"].getService(Service.LeakSensor)
-              .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+
+            if (Date.now() > this.leakDetected) {  // Don't clear alerts for a minimum of 15 minutes
+              self.accessories[name].getService(Service.TemperatureSensor)
+                .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+              self.accessories[name + "LS"].getService(Service.LeakSensor)
+                .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+            }
           }
         }
         if (response.Model.startsWith("BME")) {
@@ -502,10 +507,10 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     accessory.on('identify', self.Identify.bind(self, accessory));
 
     accessory.log = this.log;
-//    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
-    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,{
+    //    accessory.loggingService = new FakeGatoHistoryService("weather", accessory,4032,this.refresh * 10/60);
+    accessory.loggingService = new FakeGatoHistoryService("weather", accessory, {
       storage: this.storage,
-      minutes: this.refresh * 10/60
+      minutes: this.refresh * 10 / 60
     });
 
     self.accessories[name] = accessory;
