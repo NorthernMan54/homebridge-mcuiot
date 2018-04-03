@@ -2,7 +2,7 @@ local module = {}
 
 -- Make your adjustments below here
 module.Model = "BME"
-module.Version = "1.4"
+module.Version = "1.5"
 
 -- LED state
 module.ledState = 1 -- 0: fully disabled, 1: LEDs on, 2: Connected off (Boot/Error only)

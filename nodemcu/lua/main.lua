@@ -12,8 +12,12 @@ function module.start()
     led.flashRed()
     print(payload)
     gpio.write(config.YL69Power, gpio.HIGH)
-    tmr.alarm(2, 1, tmr.ALARM_SINGLE, function()
+    tmr.alarm(2, 90, tmr.ALARM_SINGLE, function()
       local moist_value = adc.read(config.YL69)
+      moist_value = moist_value + adc.read(config.YL69)
+      moist_value = moist_value + adc.read(config.YL69)
+      moist_value = math.floor( moist_value/3 )
+      
       gpio.write(config.YL69Power, gpio.LOW)
       local temp = -999
       local humi = -999
