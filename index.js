@@ -378,7 +378,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
           moisture.push((1024 - roundInt(response.Data.Moisture)) / 10.2);
           moisture.shift();
 
-          var moist = moisture.average();  // = 2
+          var moist = average(moisture);
 
           self.accessories[name].getService(Service.TemperatureSensor)
             .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
@@ -409,7 +409,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
             debug("No Leak");
 
-            if (Date.now() > this.leakDetected) {  // Don't clear alerts for a minimum of 15 minutes
+            if (Date.now() > this.leakDetected) { // Don't clear alerts for a minimum of 15 minutes
               self.accessories[name].getService(Service.TemperatureSensor)
                 .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
               self.accessories[name + "LS"].getService(Service.LeakSensor)
@@ -745,12 +745,10 @@ function httpRequest(url, body, method, callback) {
     })
 }
 
-// https://stackoverflow.com/questions/10359907/array-sum-and-average
-
-Array.prototype.sum = Array.prototype.sum || function() {
-  return this.reduce(function(sum, a) { return sum + Number(a) }, 0);
-}
-
-Array.prototype.average = Array.prototype.average || function() {
-  return this.sum() / (this.length || 1);
+function average(array) {
+  var sum = 0;
+  for (var i = 0; i < array.length; i++) {
+    sum += parseInt(array[i], 10); //don't forget to add the base
+  }
+  return (sum / array.length);
 }
