@@ -37,6 +37,13 @@ var logger = require("mcuiot-logger").logger;
 const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
+var moisture = [];
+moisture.push(1);
+moisture.push(1);
+moisture.push(1);
+moisture.push(1);
+moisture.push(1);
+
 
 module.exports = function(homebridge) {
   Accessory = homebridge.platformAccessory;
@@ -367,7 +374,12 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
         if (response.Model.endsWith("YL")) {
           // Set moisture level for YL Models
-          var moist = (1024 - roundInt(response.Data.Moisture)) / 10.2;
+
+          moisture.push((1024 - roundInt(response.Data.Moisture)) / 10.2);
+          moisture.shift();
+
+          var moist = moisture.average();  // = 2
+
           self.accessories[name].getService(Service.TemperatureSensor)
             .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
           // Do we have a leak ?
@@ -731,4 +743,14 @@ function httpRequest(url, body, method, callback) {
     function(err, response, body) {
       callback(err, response, body)
     })
+}
+
+// https://stackoverflow.com/questions/10359907/array-sum-and-average
+
+Array.prototype.sum = Array.prototype.sum || function() {
+  return this.reduce(function(sum, a) { return sum + Number(a) }, 0);
+}
+
+Array.prototype.average = Array.prototype.average || function() {
+  return this.sum() / (this.length || 1);
 }
