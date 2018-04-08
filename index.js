@@ -387,7 +387,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
             .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
           // Do we have a leak ?
 
-          debug("Leak: %s > %s ?", moist, this.leak);
+          debug("%s Leak: %s > %s ?", name, moist, this.leak);
 
           if (response.Data.Moisture == 1024) {
             debug('Leak Sensor Failed', name, response.Data.Moisture);
@@ -402,7 +402,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
           if (moist > this.leak) {
 
             this.leakDetected = Date.now() + 15 * 60 * 1000; // Don't clear alerts for 15 minutes
-            debug("Leak");
+            debug("Leak",name);
             self.accessories[name].getService(Service.TemperatureSensor)
               .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
             self.accessories[name + "LS"].getService(Service.LeakSensor)
@@ -410,7 +410,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
           } else {
 
-            debug("No Leak");
+            debug("No Leak",name);
 
             if (Date.now() > this.leakDetected) { // Don't clear alerts for a minimum of 15 minutes
               self.accessories[name].getService(Service.TemperatureSensor)
