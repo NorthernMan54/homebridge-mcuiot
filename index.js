@@ -37,13 +37,6 @@ var logger = require("mcuiot-logger").logger;
 const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
-var moisture = [];
-moisture.push(1);
-moisture.push(1);
-moisture.push(1);
-moisture.push(1);
-moisture.push(1);
-
 
 module.exports = function(homebridge) {
   Accessory = homebridge.platformAccessory;
@@ -375,10 +368,22 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
         if (response.Model.endsWith("YL")) {
           // Set moisture level for YL Models
 
-          moisture.push((1024 - roundInt(response.Data.Moisture)) / 10.2);
-          moisture.shift();
+          if (!self.accessories[name].context.moisture) {
+            //debug("Water Level Averaging Init",name);
+            self.accessories[name].context.moisture = [];
+            self.accessories[name].context.moisture.push(1);
+            self.accessories[name].context.moisture.push(1);
+            self.accessories[name].context.moisture.push(1);
+            self.accessories[name].context.moisture.push(1);
+            self.accessories[name].context.moisture.push(1);
+          }
 
-          var moist = average(moisture);
+          self.accessories[name].context.moisture.push((1024 - roundInt(response.Data.Moisture)) / 10.2);
+          self.accessories[name].context.moisture.shift();
+
+          //debug("Water Level",name,self.accessories[name].context.moisture);
+
+          var moist = average(self.accessories[name].context.moisture);
 
           self.accessories[name].getService(Service.TemperatureSensor)
             .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
@@ -748,7 +753,7 @@ function httpRequest(url, body, method, callback) {
 function average(array) {
   var sum = 0;
   for (var i = 0; i < array.length; i++) {
-    sum += parseInt(array[i], 10); //don't forget to add the base
+    sum += Math.round(array[i]);
   }
   return (sum / array.length);
 }
