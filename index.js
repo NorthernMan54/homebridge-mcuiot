@@ -53,7 +53,6 @@ module.exports = function(homebridge) {
 function mcuiot(log, config, api) {
   this.log = log;
   this.config = config;
-
   this.refresh = config['refresh'] || 60; // Update every minute
   this.leak = config['leak'] || 10; // Leak detected threshold
   this.port = config['port'] || 8080; // Default http port
