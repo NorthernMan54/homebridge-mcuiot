@@ -45,7 +45,6 @@ module.exports = function(homebridge) {
   UUIDGen = homebridge.hap.uuid;
   CustomCharacteristic = require('./lib/CustomCharacteristic.js')(homebridge);
   FakeGatoHistoryService = require('fakegato-history')(homebridge);
-
   fixInheritance(mcuiot.Moisture, Characteristic);
 
   homebridge.registerPlatform("homebridge-mcuiot", "mcuiot", mcuiot);
