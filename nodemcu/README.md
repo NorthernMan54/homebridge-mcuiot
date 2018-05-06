@@ -50,7 +50,7 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
 1. Using http://nodemcu-build.com, create a custom firmware containing at least
    these modules:
 
-   adc,bit,bme280,dht,file,gpio,i2c,mdns,net,node,tmr,uart,websocket,wifi
+   adc, ads1115, bit, bme280, dht, file, gpio, i2c, mdns, net, node, tmr, uart, websocket, wifi
 
 2. Please use esptool to install the float firmware onto your nodemcu.  There are alot of guides for this, so I won't repeat it here.
 
@@ -107,11 +107,11 @@ passwords_sample.lua      - Do not install
 ```
 NodeMCU custom build by frightanic.com
 	branch: master
-	commit: c8ac5cfb912ff206b03dd7c60ffbb2dafb83fe5e
+	commit: 67027c0d05f7e8d1b97104e05a3715f6ebc8d07f
 	SSL: false
-	modules: adc,bit,bme280,dht,file,gpio,i2c,mdns,net,node,tmr,uart,websocket,wifi
- build 	built on: 2017-07-24 22:46
- powered by Lua 5.1.4 on SDK 2.1.0(116b762)
+	modules: adc,ads1115,bit,bme280,dht,file,gpio,i2c,mdns,net,node,tmr,uart,websocket,wifi
+ build created on 2018-05-06 22:13
+ powered by Lua 5.1.4 on SDK 2.2.1(cfd48f3)
 Heap Available: -c 37392
 Heap Available: -l 34304
 Heap Available: -b 30832
