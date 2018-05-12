@@ -402,7 +402,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
           if (moist > this.leak) {
 
             this.leakDetected = Date.now() + 15 * 60 * 1000; // Don't clear alerts for 15 minutes
-            debug("Leak",name);
+            debug("Leak", name);
             self.accessories[name].getService(Service.TemperatureSensor)
               .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
             self.accessories[name + "LS"].getService(Service.LeakSensor)
@@ -410,7 +410,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
           } else {
 
-            debug("No Leak",name);
+            debug("No Leak", name);
 
             if (Date.now() > this.leakDetected) { // Don't clear alerts for a minimum of 15 minutes
               self.accessories[name].getService(Service.TemperatureSensor)
@@ -463,10 +463,13 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
 
   if (!self.accessories[name]) {
 
-    var displayName = this.aliases[name];
+    var displayName;
+    if (this.aliases)
+      displayName = this.aliases[name];
     if (typeof(displayName) == "undefined") {
       displayName = name;
     }
+    debug(displayName);
     var accessory = new Accessory(name, uuid, 10);
 
     self.log("Adding MCUIOT Device:", name, displayName, model);
@@ -556,10 +559,13 @@ mcuiot.prototype.addLeakSensor = function(device, model) {
 
   if (!self.accessories[name]) {
 
-    var displayName = this.aliases[name];
-    if (typeof(displayName) == "undefined")
+    var displayName;
+    if (this.aliases)
+      displayName = this.aliases[name];
+    if (typeof(displayName) == "undefined") {
       displayName = name;
-
+    }
+    debug(displayName);
     var accessory = new Accessory(name, uuid, 10);
 
     self.log("Adding MCUIOT-LS Device:", name, displayName, model);
