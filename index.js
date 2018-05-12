@@ -628,9 +628,12 @@ mcuiot.prototype.addGarageDoorOpener = function(device, model) {
 
   if (!self.accessories[name]) {
 
-    var displayName = this.aliases[name];
-    if (typeof(displayName) == "undefined")
+    var displayName;
+    if (this.aliases)
+      displayName = this.aliases[name];
+    if (typeof(displayName) == "undefined") {
       displayName = name;
+    }
 
     var accessory = new Accessory(name, uuid, 10);
 
