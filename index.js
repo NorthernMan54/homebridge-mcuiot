@@ -469,7 +469,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
     if (typeof(displayName) == "undefined") {
       displayName = name;
     }
-    debug(displayName);
+
     var accessory = new Accessory(name, uuid, 10);
 
     self.log("Adding MCUIOT Device:", name, displayName, model);
@@ -565,7 +565,7 @@ mcuiot.prototype.addLeakSensor = function(device, model) {
     if (typeof(displayName) == "undefined") {
       displayName = name;
     }
-    debug(displayName);
+
     var accessory = new Accessory(name, uuid, 10);
 
     self.log("Adding MCUIOT-LS Device:", name, displayName, model);
