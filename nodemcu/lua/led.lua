@@ -65,7 +65,7 @@ function module.error()
 end
 
 function module.flashRed()
-  if config.ledState == 0 then
+  if config.ledState == 0 or config.ledState == 2 then
     return
   end
   
