@@ -1,6 +1,6 @@
 {
   "name": "homebridge-mcuiot",
-  "version": "0.1.50",
+  "version": "0.1.51",
   "description": "Homebridge platform plugin that support's a network of nodemcu's running nodemcu-dht-yl69-mdns to display Temperature and Humidity.",
   "main": "index.js",
   "scripts": {
