@@ -62,7 +62,7 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
    module.SSID["SSID1"] = { ssid="SSID1", pwd = "password" }
    ```
 
-2. Model - Used to determine which sensors are attached ( BME, DHT, YL, or GD)
+2. Model - Used to determine which sensors are attached ( BME, DHT, YL, BAT or GD)
    ```
    module.Model = "DHT"
    or
