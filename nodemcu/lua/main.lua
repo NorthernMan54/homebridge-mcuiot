@@ -16,16 +16,15 @@ function module.start()
 
     if string.find(config.Model, "BAT") then
       local battery = adc.readvdd33()
-      battery = moist_value + adc.readvdd33()
-      battery = moist_value + adc.readvdd33()
-      battery = math.floor( moist_value / 3 )
-      batteryString = ", \"Battery\": "..battery
-    else
+      battery = battery + adc.readvdd33()
+      battery = battery + adc.readvdd33()
+      batteryString = ", \"Battery\": "..math.floor( battery / 3 )
+      print(batteryString)
+    end
       local moist_value = adc.read(config.YL69)
       moist_value = moist_value + adc.read(config.YL69)
       moist_value = moist_value + adc.read(config.YL69)
       moist_value = math.floor( moist_value / 3 )
-    end
 
     gpio.write(config.YL69Power, gpio.LOW)
     local temp = -999
