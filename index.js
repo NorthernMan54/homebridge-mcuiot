@@ -283,7 +283,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
         }
 
       }
-      // debug("MCUIOT Response %s", response);
+      debug("MCUIOT Response %s", JSON.stringify(response, null, 4));
       if (roundInt(response.Data.Status) != 0) {
         self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
         callback(new Error("Nodemcu returned error"));
@@ -424,8 +424,9 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
         if (response.Model.includes("BAT")) {
           self.accessories[name].getService(Service.BatteryService)
-            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery/102.4);
-          if (this.battery < response.Data.Battery/102.4) {
+            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery/3300*100);
+          debug( "Is %s < %s ",this.battery, response.Data.Battery/3300*100);
+          if (this.battery > response.Data.Battery/3300*100) {
             self.accessories[name].getService(Service.BatteryService)
               .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
           } else {
@@ -523,7 +524,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
         .getService(Service.TemperatureSensor)
         .addCharacteristic(Characteristic.StatusLowBattery);
       accessory
-        .addService(Service.BatteryService, dispName);
+        .addService(Service.BatteryService, displayName);
 
     }
 
