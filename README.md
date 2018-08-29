@@ -18,6 +18,7 @@ trigger a Leak event when the amount of moisture detected crosses a defined thre
 - BME - Combination Temperature / Humidity / Barometric Pressure Sensor
 - YL - Water Leak Sensor
 - GD - Garage Door Opener - Only reporting on position
+- BAT - Reads ADC pin, and displays as a battery level
 
 # Installation
 
@@ -78,6 +79,7 @@ then removes the device.  The identity function is not available in the Home app
 - refresh - Refresh rate in seconds for data, defaults to 60 seconds
 - leak - Threshold for Moisture sensor to trigger leak detected, defaults to 10%
 - port - Optional, port of web server to monitor devices, defaults to 8080
+- battery - Optional - BAT, percentage to set battery low alert based on reading of ADC pin.
 - storage - Storage of chart graphing data for history graphing, either fs or googleDrive, defaults to fs
 - spreadsheetId ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567".
 - aliases - Friendly names for your nodemcu's

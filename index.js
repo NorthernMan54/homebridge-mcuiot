@@ -55,7 +55,7 @@ function mcuiot(log, config, api) {
   this.config = config;
   this.refresh = config['refresh'] || 60; // Update every minute
   this.leak = config['leak'] || 10; // Leak detected threshold
-  this.battery = config['battery'] || 10; // Battery low
+  this.battery = config['battery'] || 69; // Battery low
   this.port = config['port'] || 8080; // Default http port
   this.storage = config['storage'] || "fs";
   this.leakDetected = Date.now(); // Leak detection flapping fix
@@ -424,9 +424,9 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
         if (response.Model.includes("BAT")) {
           self.accessories[name].getService(Service.BatteryService)
-            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery/3300*100);
-          debug( "Is %s < %s ",this.battery, response.Data.Battery/3300*100);
-          if (this.battery > response.Data.Battery/3300*100) {
+            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery/1024*100);
+          debug( "Is %s < %s ",this.battery, response.Data.Battery/1024*100);
+          if (this.battery > response.Data.Battery/1024*100) {
             self.accessories[name].getService(Service.BatteryService)
               .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
           } else {

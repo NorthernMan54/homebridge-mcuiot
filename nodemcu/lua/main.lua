@@ -15,16 +15,16 @@ function module.start()
     tmr.alarm(2, 90, tmr.ALARM_SINGLE, function()
 
     if string.find(config.Model, "BAT") then
-      local battery = adc.readvdd33()
-      battery = battery + adc.readvdd33()
-      battery = battery + adc.readvdd33()
+      local battery = adc.read(0)
+      battery = battery + adc.read(0)
+      battery = battery + adc.read(0)
       batteryString = ", \"Battery\": "..math.floor( battery / 3 )
       print(batteryString)
     end
-      local moist_value = adc.read(config.YL69)
-      moist_value = moist_value + adc.read(config.YL69)
-      moist_value = moist_value + adc.read(config.YL69)
-      moist_value = math.floor( moist_value / 3 )
+    local moist_value = adc.read(config.YL69)
+    moist_value = moist_value + adc.read(config.YL69)
+    moist_value = moist_value + adc.read(config.YL69)
+    moist_value = math.floor( moist_value / 3 )
 
     gpio.write(config.YL69Power, gpio.LOW)
     local temp = -999

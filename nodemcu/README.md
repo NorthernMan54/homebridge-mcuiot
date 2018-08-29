@@ -71,6 +71,8 @@ http://www.schematics.com/editor/nodemcu-dht22-yl-69-35878/
    module.Model = "BME"
    or
    module.Model = "BME-GD"
+   or
+   module.Model = "BME-BAT"
    ```
 
 3. In config.lua update sensor configurations if required.
