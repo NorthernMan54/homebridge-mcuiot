@@ -55,6 +55,7 @@ function mcuiot(log, config, api) {
   this.config = config;
   this.refresh = config['refresh'] || 60; // Update every minute
   this.leak = config['leak'] || 10; // Leak detected threshold
+  this.battery = config['battery'] || 69; // Battery low
   this.port = config['port'] || 8080; // Default http port
   this.storage = config['storage'] || "fs";
   this.leakDetected = Date.now(); // Leak detection flapping fix
@@ -282,7 +283,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
         }
 
       }
-      // debug("MCUIOT Response %s", response);
+      debug("MCUIOT Response %s", JSON.stringify(response, null, 4));
       if (roundInt(response.Data.Status) != 0) {
         self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
         callback(new Error("Nodemcu returned error"));
@@ -300,7 +301,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
         accessory.getService(Service.TemperatureSensor)
           .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
 
-        if (response.Model.endsWith("GD")) {
+        if (response.Model.includes("GD")) {
 
           // Characteristic.CurrentDoorState.OPEN = 0; = Red Flashing
           // Characteristic.CurrentDoorState.CLOSED = 1; = Green On
@@ -363,7 +364,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
           }
         }
 
-        if (response.Model.endsWith("YL")) {
+        if (response.Model.includes("YL")) {
           // Set moisture level for YL Models
 
           if (!self.accessories[name].context.moisture) {
@@ -420,7 +421,21 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
             }
           }
         }
-        if (response.Model.startsWith("BME")) {
+
+        if (response.Model.includes("BAT")) {
+          self.accessories[name].getService(Service.BatteryService)
+            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery/1024*100);
+          debug( "Is %s < %s ",this.battery, response.Data.Battery/1024*100);
+          if (this.battery > response.Data.Battery/1024*100) {
+            self.accessories[name].getService(Service.BatteryService)
+              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+          } else {
+            self.accessories[name].getService(Service.BatteryService)
+              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+          }
+        }
+
+        if (response.Model.includes("BME")) {
           // Set BME280 Atmospheric pressure sensor;
           self.accessories[name].getService(Service.TemperatureSensor)
             .setCharacteristic(CustomCharacteristic.AtmosphericPressureLevel, roundInt(response.Data.Barometer));
@@ -491,7 +506,7 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
       .getService(Service.TemperatureSensor)
       .addCharacteristic(Characteristic.CurrentRelativeHumidity);
 
-    if (model.endsWith("YL")) {
+    if (model.includes("YL")) {
       // Add YL-69 Moisture sensor
       accessory
         .getService(Service.TemperatureSensor)
@@ -503,13 +518,23 @@ mcuiot.prototype.addMcuAccessory = function(device, model) {
       this.addLeakSensor(device, model);
     }
 
-    if (model.endsWith("GD")) {
+    if (model.includes("BAT")) {
+      // Read local power level
+      accessory
+        .getService(Service.TemperatureSensor)
+        .addCharacteristic(Characteristic.StatusLowBattery);
+      accessory
+        .addService(Service.BatteryService, displayName);
+
+    }
+
+    if (model.includes("GD")) {
       // Add Garage Door Position Sensor
 
       this.addGarageDoorOpener(device, model);
     }
 
-    if (model.startsWith("BME")) {
+    if (model.includes("BME")) {
       // Add BME280 Atmospheric pressure sensor;
       this.log("Adding BME", name);
       accessory.getService(Service.TemperatureSensor)
