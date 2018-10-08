@@ -14,6 +14,8 @@ function module.start()
     gpio.write(config.YL69Power, gpio.HIGH)
     tmr.alarm(2, 90, tmr.ALARM_SINGLE, function()
 
+    local batteryString = ""
+
     if string.find(config.Model, "BAT") then
       local battery = adc.read(0)
       battery = battery + adc.read(0)
