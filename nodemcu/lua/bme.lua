@@ -2,7 +2,7 @@ local module = {}
 
 function module.read()
 
-  local alt = 525 -- altitude of the measurement place
+  local alt = 320 -- altitude of the measurement place
   i2c.setup(0,config.bme280sda, config.bme280scl,i2c.SLOW)
   local device = bme280.setup()
   local status, temp, humi, baro, dew
