@@ -50,15 +50,15 @@ function module.start()
     --      print("33")
     local majorVer, minorVer, devVer, chipid, flashid, flashsize, flashmode, flashspeed = node.info()
     --      print("35")
-    print("Status: "..status.."\nTemp: "..temp.."\nHumi: "..humi.."\nMoisture: "..moist_value..
-    "\nBaro: "..baro.."\nDew: "..dew.."\n")
+    print("Status: "..status.."\nTemperature: "..temp.."\nHumidity: "..humi.."\nMoisture: "..moist_value..
+    "\nPressure: "..baro.."\nPressure NN: "..baros.."\nDewPoint: "..dew.."\n")
     local response = { "HTTP/1.1 200 OK\n", "Server: ESP (nodeMCU) "..chipid.."\n",
       "Content-Type: application/json\n",
       "Access-Control-Allow-Origin: *\n\n",
       "{ \"Hostname\": \""..config.ID.."\", \"Model\": \""..config.Model.."\", \"Version\": \""..config.Version..
       "\", \"Firmware\": \""..majorVer.."."..minorVer.."."..devVer.."\", \"Data\": {\"Temperature\": "..temp..
         ", \"Humidity\": "..humi..", \"Moisture\": "..moist_value..
-      ", \"Status\": "..status..", \"Barometer\": "..baro..", \"Dew\": "..dew..""..gdstring..""..batteryString.." }}\n" }
+      ", \"Status\": "..status..", \"Barometer\": "..baro..", \"Barometer NN\": "..baros..", \"Dew\": "..dew..""..gdstring..""..batteryString.." }}\n" }
 
       local function sender (conn)
         if #response > 0 then conn:send(table.remove(response, 1))
