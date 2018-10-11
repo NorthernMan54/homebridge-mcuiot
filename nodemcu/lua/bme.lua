@@ -14,10 +14,11 @@ function module.read()
       tmr.delay(100)
       T,P,H,QNH = bme280.read()
     end
+    
     baro = P / 1000
-    baros = QNH / 1000 
-    temp = T / 101
+    temp = T / 100
     humi = H / 1000
+    baros = QNH / 1000 
 
     local D = bme280.dewpoint(H, T)
     dew = D / 100
@@ -33,7 +34,7 @@ function module.read()
 
   end
 
-  return status, temp, humi, baro, baros, dew
+  return status, temp, humi, baro, dew
 
 end
 
