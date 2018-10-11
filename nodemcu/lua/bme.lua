@@ -18,7 +18,7 @@ function module.read()
     baro = P / 1000
     baros = QNH / 1000
     temp = T / 100
-    humi = H / 1000 
+    humi = H / 1000
 
     local D = bme280.dewpoint(H, T)
     dew = D / 100
