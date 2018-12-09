@@ -266,8 +266,12 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
   httpRequest(url, "", "GET", function(err, response, responseBody) {
     if (err) {
       this.log('HTTP get failed:', name, err.message);
-      //self.removeAccessory(name);
+      // self.removeAccessory(name);
       callback(err);
+    } else if (!responseBody) {
+      this.log('No data returned:', name, responseBody);
+      // self.removeAccessory(name);
+      callback(new Error("No data"));
     } else {
       var response = JSON.parse(responseBody);
 
@@ -424,9 +428,9 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 
         if (response.Model.includes("BAT")) {
           self.accessories[name].getService(Service.BatteryService)
-            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery/1024*100);
-          debug( "Is %s < %s ",this.battery, response.Data.Battery/1024*100);
-          if (this.battery > response.Data.Battery/1024*100) {
+            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery / 1024 * 100);
+          debug("Is %s < %s ", this.battery, response.Data.Battery / 1024 * 100);
+          if (this.battery > response.Data.Battery / 1024 * 100) {
             self.accessories[name].getService(Service.BatteryService)
               .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
           } else {
