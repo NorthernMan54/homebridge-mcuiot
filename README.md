@@ -1,11 +1,10 @@
-# homebridge-mcuiot
-
 [![NPM Downloads](https://img.shields.io/npm/dm/homebridge-mcuiot.svg?style=flat)](https://npmjs.org/package/homebridge-mcuiot)
 
 <!--ts-->
-   * [homebridge-mcuiot](#homebridge-mcuiot)
+   * [Introduction](#introduction)
    * [Homekit Accessories Created](#homekit-accessories-created)
    * [Installation](#installation)
+   * [Nodemcu Device build](#nodemcu-device-build)
    * [Device management](#device-management)
       * [Adding devices](#adding-devices)
       * [Removing devices](#removing-devices)
@@ -17,6 +16,8 @@
 <!-- Added by: sgracey, at:  -->
 
 <!--te-->
+
+# Introduction
 
 This is a homebridge platform plugin, supporting multiple ESP8266 / nodemcu device's
 configured as remote sensor module.  Supported sensor's include DHT22, BME280
@@ -43,6 +44,12 @@ trigger a Leak event when the amount of moisture detected crosses a defined thre
 3. Update your configuration file, see sample-config.json in this directory.
 4. Install nodemcu-dht-yl69-mdns on your Nodemcu devices, and connect a DHT22 or BME280
 Temperature/Humidity and YL-69 Soil Moisture sensors.  See
+https://github.com/NorthernMan54/homebridge-mcuiot/tree/master/nodemcu for details on the
+NodeMCU build and configuration.
+
+# Nodemcu Device build
+
+See
 https://github.com/NorthernMan54/homebridge-mcuiot/tree/master/nodemcu for details on the
 NodeMCU build and configuration.
 

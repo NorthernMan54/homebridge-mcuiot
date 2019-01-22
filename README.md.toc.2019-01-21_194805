@@ -1,6 +1,7 @@
-   * [homebridge-mcuiot](#homebridge-mcuiot)
+   * [Introduction](#introduction)
    * [Homekit Accessories Created](#homekit-accessories-created)
    * [Installation](#installation)
+   * [Nodemcu Device build](#nodemcu-device-build)
    * [Device management](#device-management)
       * [Adding devices](#adding-devices)
       * [Removing devices](#removing-devices)

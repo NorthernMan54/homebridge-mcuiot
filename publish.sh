@@ -1,7 +1,7 @@
 #! /bin/sh
 
 if npm audit; then
-  rm *orig* *toc\.*
+  rm *orig* *toc\.* nodemcu/*orig* nodemcu/*toc\.*
   npm run-script document
   git add .
   git commit -m "$1"
