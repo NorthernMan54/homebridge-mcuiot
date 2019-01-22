@@ -28,7 +28,8 @@
     "fakegato-history": "^=0.4.0",
     "httpdispatcher": "^2.1.1",
     "mcuiot-logger": "0.0.2",
-    "mdns": "^2.3.4",
+    "bonjour": "^=3.5.0",
+    "ip": "^=1.1.5",
     "moment": "^2.20.1",
     "request": "^2.83.0"
   },

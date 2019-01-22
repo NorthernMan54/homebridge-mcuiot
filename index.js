@@ -29,7 +29,8 @@
 
 var debug = require('debug')('MCUIOT');
 var request = require("request");
-var mdns = require('mdns');
+var bonjour = require('bonjour')();
+var ip = require('ip');
 var inherits = require('util').inherits;
 var Accessory, Service, Characteristic, UUIDGen, CustomCharacteristic, FakeGatoHistoryService;
 var web = require('./lib/web.js');
@@ -125,38 +126,31 @@ mcuiot.prototype.didFinishLaunching = function() {
 
   this.addResetSwitch();
 
-  self.log("Starting mDNS listener");
-  try {
-    var sequence = [
-      mdns.rst.DNSServiceResolve(),
-      'DNSServiceGetAddrInfo' in mdns.dns_sd ? mdns.rst.DNSServiceGetAddrInfo() : mdns.rst.getaddrinfo({
-        families: [4]
-      }),
-      mdns.rst.makeAddressesUnique()
-    ];
-    var browser = mdns.createBrowser(mdns.tcp('dht22'), {
-      resolverSequence: sequence
-    });
-    browser.on('serviceUp', function(service) {
-      self.log("Found MCUIOT device:", service.name);
-      //            for (var i = 0; i < 5; i++) {
+  self.log("Starting Bonjour listener");
 
-      mcuiot.prototype.mcuModel("http://" + service.host + ":" + service.port + "/", function(err, model) {
+  try {
+    bonjour.find({
+      type: 'dht22'
+    }, function(service) {
+      // debug('Found an HAP server:', service);
+      debug("mcuiot discovered", service.name, service.addresses);
+      var hostname;
+      for (let address of service.addresses) {
+        if (ip.isV4Format(address)) {
+          hostname = address;
+          break;
+        }
+      }
+
+      debug("mcuiot instance address: %s -> %s -> %s", service.name, service.host, hostname);
+      mcuiot.prototype.mcuModel.call(this, "http://" + service.host + ":" + service.port + "/", function(err, model) {
         if (!err) {
           self.addMcuAccessory(service, model);
         } else {
           self.log("Error Adding MCUIOT Device", service.name, err.message);
         }
       });
-      //            }
-    });
-    browser.on('serviceDown', function(service) {
-      self.log("Service down: ", service);
-      // Mark missing devices as unreachable
-      self.deviceDown(service.name);
-    });
-    browser.on('error', handleError);
-    browser.start();
+    }.bind(this));
   } catch (ex) {
     handleError(ex);
   }
@@ -733,10 +727,6 @@ function fixInheritance(subclass, superclass) {
 
 function handleError(err) {
   switch (err.errorCode) {
-    case mdns.kDNSServiceErr_Unknown:
-      console.warn(err);
-      setTimeout(createBrowser, 5000);
-      break;
     default:
       console.warn(err);
   }
