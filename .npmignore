@@ -1,0 +1,8 @@
+docs/*
+*fzz
+*jpg
+*png
+tools/*
+publish.sh
+documentation.yml
+gh-md-toc

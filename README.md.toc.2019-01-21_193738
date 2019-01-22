@@ -1,0 +1,13 @@
+   * [homebridge-mcuiot](#homebridge-mcuiot)
+   * [Homekit Accessories Created](#homekit-accessories-created)
+   * [Installation](#installation)
+   * [Device management](#device-management)
+      * [Adding devices](#adding-devices)
+      * [Removing devices](#removing-devices)
+   * [Configuration](#configuration)
+      * [Optional parameters](#optional-parameters)
+   * [Optional - Enable access to Google to log data and store graphing data](#optional---enable-access-to-google-to-log-data-and-store-graphing-data)
+   * [Credits](#credits)
+
+<!-- Added by: sgracey, at:  -->
+
