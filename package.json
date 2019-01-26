@@ -25,14 +25,14 @@
     "homebridge": ">=0.2.0"
   },
   "dependencies": {
-    "debug": "^2.6.9",
-    "fakegato-history": "^=0.4.0",
-    "httpdispatcher": "^2.1.1",
-    "mcuiot-logger": "0.0.2",
-    "bonjour": "^=3.5.0",
-    "ip": "^=1.1.5",
-    "moment": "^2.20.1",
-    "request": "^2.83.0"
+    "debug": ">2.6.9",
+    "fakegato-history": ">0.4.0",
+    "httpdispatcher": ">2.1.1",
+    "mcuiot-logger": ">0.0.2",
+    "bonjour": ">3.4.0",
+    "ip": ">1.1.4",
+    "moment": ">2.20.1",
+    "request": ">2.83.0"
   },
   "author": "NorthernMan54",
   "license": "Apache-2.0",

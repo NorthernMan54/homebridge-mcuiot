@@ -85,6 +85,7 @@ then removes the device.  The identity function is not available in the Home app
 "platforms": [
 	{ "platform":	"mcuiot",
     "name":     "MCUIOT",
+    "debug":    false,
     "aliases": {
       "NODE-2BA4CB": "Front Porch",
       "NODE-8F8FE": "Cold Cellar",
@@ -106,6 +107,7 @@ then removes the device.  The identity function is not available in the Home app
 - storage - Storage of chart graphing data for history graphing, either fs or googleDrive, defaults to fs
 - spreadsheetId ( optional ): Log data to a google sheet, this is part of the URL of your spreadsheet.  ie the spreadsheet ID in the URL https://docs.google.com/spreadsheets/d/abc1234567/edit#gid=0 is "abc1234567".
 - aliases - Friendly names for your nodemcu's
+- debug - Enable debug logging ( This is the same as enabling via command line DEBUG=MCUIOT homebridge)
 
 # Optional - Enable access to Google to log data and store graphing data
 

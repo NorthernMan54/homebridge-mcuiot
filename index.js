@@ -27,14 +27,14 @@
 
 'use strict';
 
-var debug = require('debug')('MCUIOT');
+let debug = require('debug')('MCUIOT');
 var request = require("request");
 var bonjour = require('bonjour')();
 var ip = require('ip');
 var inherits = require('util').inherits;
 var Accessory, Service, Characteristic, UUIDGen, CustomCharacteristic, FakeGatoHistoryService;
 var web = require('./lib/web.js');
-var logger = require("mcuiot-logger").logger;
+var Logger = require("mcuiot-logger").logger;
 const moment = require('moment');
 var os = require("os");
 var hostname = os.hostname();
@@ -61,11 +61,27 @@ function mcuiot(log, config, api) {
   this.storage = config['storage'] || "fs";
   this.leakDetected = Date.now(); // Leak detection flapping fix
 
+  // Enable config based DEBUG logging enable
+  this.debug = config['debug'] || false;
+  if (this.debug) {
+    let debugEnable = require('debug');
+    let namespaces = debugEnable.disable();
+
+    // this.log("DEBUG-1", namespaces);
+    if (namespaces) {
+      namespaces = namespaces + ',MCUIOT';
+    } else {
+      namespaces = 'MCUIOT';
+    }
+    // this.log("DEBUG-2", namespaces);
+    debugEnable.enable(namespaces);
+  }
+
   debug("Settings: refresh=%s, leak=%s", this.refresh, this.leak);
 
   this.spreadsheetId = config['spreadsheetId'];
   if (this.spreadsheetId) {
-    this.logger = new logger(this.spreadsheetId);
+    this.logger = new Logger(this.spreadsheetId);
   }
 
   this.accessories = {}; // MAC -> Accessory
@@ -133,16 +149,17 @@ mcuiot.prototype.didFinishLaunching = function() {
       type: 'dht22'
     }, function(service) {
       // debug('Found an HAP server:', service);
-      debug("mcuiot discovered", service.name, service.addresses);
-      var hostname;
+      debug("mcuiot discovered %s -> %s -> %s", service.name, service.host, service.addresses);
+      // var hostname;
       for (let address of service.addresses) {
         if (ip.isV4Format(address)) {
-          hostname = address;
+          // hostname = address;
+          service.host = address;
           break;
         }
       }
 
-      debug("mcuiot instance address: %s -> %s -> %s", service.name, service.host, hostname);
+      debug("mcuiot instance address: %s -> %s:%s", service.name, service.host, service.port);
       mcuiot.prototype.mcuModel.call(this, "http://" + service.host + ":" + service.port + "/", function(err, model) {
         if (!err) {
           self.addMcuAccessory(service, model);
@@ -259,7 +276,7 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
       // self.removeAccessory(name);
       callback(new Error("No data"));
     } else {
-      var response = JSON.parse(responseBody);
+      response = JSON.parse(responseBody);
 
       if (this.log_event_counter[response.Hostname] === undefined) {
         this.log_event_counter[response.Hostname] = 0;
@@ -431,8 +448,6 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
 };
 
 mcuiot.prototype.mcuModel = function(url, callback) {
-  var self = this;
-  var model;
   //    this.log("Object: %s", JSON.stringify(this, null, 4));
 
   httpRequest(url, "", "GET", function(err, response, responseBody) {
@@ -440,7 +455,7 @@ mcuiot.prototype.mcuModel = function(url, callback) {
       //            console.log('HTTP get failed: %s', url,err.message);
       callback(err);
     } else {
-      var response = JSON.parse(responseBody);
+      response = JSON.parse(responseBody);
       callback(null, response.Model);
     }
   });
