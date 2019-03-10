@@ -27,7 +27,7 @@ and YL-69 Soil Moisture Sensor.  Included is also monitoring of a garage door po
 sensor. Also supports auto device discovery using mDNS,
 removing the need to manage devices via the config.json file. Historical display of temperature data is available via HomeKit apps thats support graphing.
 
-Full build instructions are here in the [Wiki](./wiki/Instructions-for-Beginners)
+Full build instructions are here in the [Wiki](https://github.com/NorthernMan54/homebridge-mcuiot/wiki/Instructions-for-Beginners)
 
 Also the YL-69 Moisture sensor will create a phantom "Leak Sensor", and will
 trigger a Leak event when the amount of moisture detected crosses a defined threshold.
