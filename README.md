@@ -1,5 +1,7 @@
 [![NPM Downloads](https://img.shields.io/npm/dm/homebridge-mcuiot.svg?style=flat)](https://npmjs.org/package/homebridge-mcuiot)
 
+![MCUIOT](docs/1.jpg)
+
 <!--ts-->
    * [Introduction](#introduction)
    * [Homekit Accessories Created](#homekit-accessories-created)
@@ -25,7 +27,7 @@ and YL-69 Soil Moisture Sensor.  Included is also monitoring of a garage door po
 sensor. Also supports auto device discovery using mDNS,
 removing the need to manage devices via the config.json file. Historical display of temperature data is available via HomeKit apps thats support graphing.
 
-Full build instructions are included in my instructable http://www.instructables.com/id/Homebridge-MCU-IOT/
+Full build instructions are here in the [Wiki](./wiki/Instructions-for-Beginners)
 
 Also the YL-69 Moisture sensor will create a phantom "Leak Sensor", and will
 trigger a Leak event when the amount of moisture detected crosses a defined threshold.
@@ -154,3 +156,4 @@ e. Copy the code you're given, paste it into the command-line prompt, and press 
 
 * Homebridge communityTypes - Homespun and SphtKr
 * simont77 - History Service
+* agruen - Simplified setup / installation instructions
