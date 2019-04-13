@@ -2,6 +2,9 @@ local module = {}
 
 local mode = 0
 
+local flasher = tmr.create()
+local flashRed = tmr.create()
+
 local function start()
   if config.ledState == 0 then
     return
@@ -11,7 +14,7 @@ local function start()
   gpio.mode(config.ledRed, gpio.OUTPUT)
 
   local lighton=0
-  tmr.alarm(0,1000,1,function()
+  flasher:register(1000,1,function()
       if lighton==0 then
         lighton=1
         if mode == 0 then
@@ -43,6 +46,7 @@ local function start()
         end
       end
     end)
+    flasher:start()
 
 end
 
@@ -68,11 +72,12 @@ function module.flashRed()
   if config.ledState == 0 or config.ledState == 2 then
     return
   end
-  
+
   gpio.write(config.ledRed, gpio.LOW)
-  tmr.alarm(1,200,tmr.ALARM_SINGLE,function()
+  flashRed:register(200,tmr.ALARM_SINGLE,function()
       gpio.write(config.ledRed, gpio.HIGH)
     end)
+    flashRed:start()
 end
 
 return module

@@ -1,8 +1,8 @@
 local module = {}
 
 -- Make your adjustments below here
-module.Model = "DHT-BAT"
-module.Version = "1.5"
+module.Model = "BME"
+module.Version = "1.6"
 
 -- LED state
 module.ledState = 1 -- 0: fully disabled, 1: LEDs on, 2: Connected off (Boot/Error only)
