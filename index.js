@@ -274,9 +274,14 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
     } else if (!responseBody) {
       this.log('No data returned:', name, responseBody);
       // self.removeAccessory(name);
-      callback(new Error("No data"));
+      callback(new Error("No data" + name));
     } else {
-      response = JSON.parse(responseBody);
+      try {
+        response = JSON.parse(responseBody);
+      } catch (ex) {
+        this.log('JSON Parse failed:', name, responseBody);
+        callback(new Error("JSON Parse Error " + name));
+      }
 
       if (this.log_event_counter[response.Hostname] === undefined) {
         this.log_event_counter[response.Hostname] = 0;
