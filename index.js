@@ -294,9 +294,12 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
           this.logger.storeData(response);
         }
       }
-      debug("MCUIOT Response %s", JSON.stringify(response, null, 4));
-      if (roundInt(response.Data.Status) !== 0) {
-        self.log("Error status %s %s", response.Hostname, roundInt(response.Data.Status));
+      debug("MCUIOT Response %s -> %s", name, JSON.stringify(response, null, 2));
+      if (!response.Data) {
+        self.log("Nodemcu returned invalid response %s", name);
+        callback(new Error("Nodemcu returned invalid response"));
+      } else if (roundInt(response.Data.Status) !== 0) {
+        self.log("Error status %s %s", name, roundInt(response.Data.Status));
         callback(new Error("Nodemcu returned error"));
       } else {
         //  debug(this.log_event_counter[response.Hostname], this.log_event_counter[response.Hostname] % 10);
