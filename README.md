@@ -1,8 +1,15 @@
 [![NPM Downloads](https://img.shields.io/npm/dm/homebridge-mcuiot.svg?style=flat)](https://npmjs.org/package/homebridge-mcuiot)
 
+# NOTICE: I'm in the process of deprecating my usage of this plugin.
+
+And in the process of migrating all my devices to the [Tasmota](https://tasmota.github.io/docs/) firmware and the [homebridge-tasmota](https://github.com/NorthernMan54/homebridge-tasmota) plugin.  With the transition I'm not changing my devices, just flashing them with Tasmota.
+
+If someone wants to take over ownership of this codebase, please let me know.
+
 ![MCUIOT](docs/1.jpg)
 
 <!--ts-->
+   * [NOTICE: I'm in the process of deprecating my usage of this plugin.](#notice-im-in-the-process-of-deprecating-my-usage-of-this-plugin)
    * [Introduction](#introduction)
    * [Homekit Accessories Created](#homekit-accessories-created)
    * [Installation](#installation)
