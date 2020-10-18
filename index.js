@@ -278,178 +278,178 @@ mcuiot.prototype.getDHTTemperature = function(accessory, callback) {
     } else {
       try {
         response = JSON.parse(responseBody);
+
+        if (this.log_event_counter[response.Hostname] === undefined) {
+          this.log_event_counter[response.Hostname] = 0;
+        } else {
+          this.log_event_counter[response.Hostname] = 1 + this.log_event_counter[response.Hostname];
+        }
+        if (this.log_event_counter[response.Hostname] > 59) {
+          this.log_event_counter[response.Hostname] = 0;
+          if (this.spreadsheetId) {
+            this.logger.storeData(response);
+          }
+        }
+        debug("MCUIOT Response %s -> %s", name, JSON.stringify(response, null, 2));
+        if (!response.Data) {
+          self.log("Nodemcu returned invalid response %s", name);
+          callback(new Error("Nodemcu returned invalid response"));
+        } else if (roundInt(response.Data.Status) !== 0) {
+          self.log("Error status %s %s", name, roundInt(response.Data.Status));
+          callback(new Error("Nodemcu returned error"));
+        } else {
+          //  debug(this.log_event_counter[response.Hostname], this.log_event_counter[response.Hostname] % 10);
+
+          accessory.loggingService.addEntry({
+            time: moment().unix(),
+            temp: roundInt(response.Data.Temperature),
+            pressure: roundInt(response.Data.Barometer),
+            humidity: roundInt(response.Data.Humidity)
+          });
+
+          accessory.getService(Service.TemperatureSensor)
+            .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
+
+          if (response.Model.includes("GD")) {
+            // Characteristic.CurrentDoorState.OPEN = 0; = Red Flashing
+            // Characteristic.CurrentDoorState.CLOSED = 1; = Green On
+            // Characteristic.CurrentDoorState.OPENING = 2;
+            // Characteristic.CurrentDoorState.CLOSING = 3;
+            // Characteristic.CurrentDoorState.STOPPED = 4;
+
+            // Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL = 0;
+            // Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW = 1;
+
+            // Green Flashing = no contact with sensor
+
+            // If its not open, then see what's up!!!
+
+            // Red Flashing, Green Off = Open
+            // Red Off, Green On = Closed
+            // Red Off / Tick, Green Flashing = ???
+
+            if (response.Data.Green === "On") {
+              //  debug("GarageDoor is Closed", name);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.ObstructionDetected, 0);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+            } else if (response.Data.Red === "Flashing" && response.Data.Green === "Off") {
+              self.log("GarageDoor %s is Open: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.ObstructionDetected, 0);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+            } else if (response.Data.Green === "Flashing" || (response.Data.Green === "Off" && response.Data.Red === "Off")) {
+              self.log("GarageDoor %s is sensor not reachable: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.ObstructionDetected, 0);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+            } else {
+              self.log("GarageDoor %s is at Fault: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.ObstructionDetected, 0);
+              self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+            }
+          }
+
+          if (response.Model.includes("YL")) {
+            // Set moisture level for YL Models
+
+            if (!self.accessories[name].context.moisture) {
+              // debug("Water Level Averaging Init",name);
+              self.accessories[name].context.moisture = [];
+              self.accessories[name].context.moisture.push(1);
+              self.accessories[name].context.moisture.push(1);
+              self.accessories[name].context.moisture.push(1);
+              self.accessories[name].context.moisture.push(1);
+              self.accessories[name].context.moisture.push(1);
+            }
+
+            self.accessories[name].context.moisture.push((1024 - roundInt(response.Data.Moisture)) / 10.2);
+            self.accessories[name].context.moisture.shift();
+
+            // debug("Water Level",name,self.accessories[name].context.moisture);
+
+            var moist = average(self.accessories[name].context.moisture);
+
+            self.accessories[name].getService(Service.TemperatureSensor)
+              .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
+            // Do we have a leak ?
+
+            debug("%s Leak: %s > %s ?", name, moist, this.leak);
+
+            if (response.Data.Moisture === 1024) {
+              debug('Leak Sensor Failed', name, response.Data.Moisture);
+              self.accessories[name + "LS"].getService(Service.LeakSensor)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+            } else {
+              self.accessories[name + "LS"].getService(Service.LeakSensor)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+            }
+
+            if (moist > this.leak) {
+              this.leakDetected = Date.now() + 15 * 60 * 1000; // Don't clear alerts for 15 minutes
+              debug("Leak", name);
+              self.accessories[name].getService(Service.TemperatureSensor)
+                .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
+              self.accessories[name + "LS"].getService(Service.LeakSensor)
+                .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
+            } else {
+              debug("No Leak", name);
+
+              if (Date.now() > this.leakDetected) { // Don't clear alerts for a minimum of 15 minutes
+                self.accessories[name].getService(Service.TemperatureSensor)
+                  .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+                self.accessories[name + "LS"].getService(Service.LeakSensor)
+                  .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
+              }
+            }
+          }
+
+          if (response.Model.includes("BAT")) {
+            self.accessories[name].getService(Service.BatteryService)
+              .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery / 1024 * 100);
+            debug("Is %s < %s ", this.battery, response.Data.Battery / 1024 * 100);
+            if (this.battery > response.Data.Battery / 1024 * 100) {
+              self.accessories[name].getService(Service.BatteryService)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+            } else {
+              self.accessories[name].getService(Service.BatteryService)
+                .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+            }
+          }
+
+          if (response.Model.includes("BME")) {
+            // Set BME280 Atmospheric pressure sensor;
+            self.accessories[name].getService(Service.TemperatureSensor)
+              .setCharacteristic(CustomCharacteristic.AtmosphericPressureLevel, roundInt(response.Data.Barometer));
+          }
+
+          //                debug("Callback Temp",roundInt(response.Data.Temperature));
+          callback(null, roundInt(response.Data.Temperature));
+        }
       } catch (ex) {
         this.log('JSON Parse failed:', name, responseBody);
         callback(new Error("JSON Parse Error " + name));
-      }
-
-      if (this.log_event_counter[response.Hostname] === undefined) {
-        this.log_event_counter[response.Hostname] = 0;
-      } else {
-        this.log_event_counter[response.Hostname] = 1 + this.log_event_counter[response.Hostname];
-      }
-      if (this.log_event_counter[response.Hostname] > 59) {
-        this.log_event_counter[response.Hostname] = 0;
-        if (this.spreadsheetId) {
-          this.logger.storeData(response);
-        }
-      }
-      debug("MCUIOT Response %s -> %s", name, JSON.stringify(response, null, 2));
-      if (!response.Data) {
-        self.log("Nodemcu returned invalid response %s", name);
-        callback(new Error("Nodemcu returned invalid response"));
-      } else if (roundInt(response.Data.Status) !== 0) {
-        self.log("Error status %s %s", name, roundInt(response.Data.Status));
-        callback(new Error("Nodemcu returned error"));
-      } else {
-        //  debug(this.log_event_counter[response.Hostname], this.log_event_counter[response.Hostname] % 10);
-
-        accessory.loggingService.addEntry({
-          time: moment().unix(),
-          temp: roundInt(response.Data.Temperature),
-          pressure: roundInt(response.Data.Barometer),
-          humidity: roundInt(response.Data.Humidity)
-        });
-
-        accessory.getService(Service.TemperatureSensor)
-          .setCharacteristic(Characteristic.CurrentRelativeHumidity, roundInt(response.Data.Humidity));
-
-        if (response.Model.includes("GD")) {
-          // Characteristic.CurrentDoorState.OPEN = 0; = Red Flashing
-          // Characteristic.CurrentDoorState.CLOSED = 1; = Green On
-          // Characteristic.CurrentDoorState.OPENING = 2;
-          // Characteristic.CurrentDoorState.CLOSING = 3;
-          // Characteristic.CurrentDoorState.STOPPED = 4;
-
-          // Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL = 0;
-          // Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW = 1;
-
-          // Green Flashing = no contact with sensor
-
-          // If its not open, then see what's up!!!
-
-          // Red Flashing, Green Off = Open
-          // Red Off, Green On = Closed
-          // Red Off / Tick, Green Flashing = ???
-
-          if (response.Data.Green === "On") {
-            //  debug("GarageDoor is Closed", name);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.ObstructionDetected, 0);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-          } else if (response.Data.Red === "Flashing" && response.Data.Green === "Off") {
-            self.log("GarageDoor %s is Open: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.ObstructionDetected, 0);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-          } else if (response.Data.Green === "Flashing" || (response.Data.Green === "Off" && response.Data.Red === "Off")) {
-            self.log("GarageDoor %s is sensor not reachable: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSED);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .getCharacteristic(Characteristic.TargetDoorState).updateValue(Characteristic.CurrentDoorState.CLOSED);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.ObstructionDetected, 0);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
-          } else {
-            self.log("GarageDoor %s is at Fault: Red is %s Green is ", name, response.Data.Red, response.Data.Green);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPEN);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.TargetDoorState, Characteristic.CurrentDoorState.OPEN);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.ObstructionDetected, 0);
-            self.accessories[name + "GD"].getService(Service.GarageDoorOpener)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-          }
-        }
-
-        if (response.Model.includes("YL")) {
-          // Set moisture level for YL Models
-
-          if (!self.accessories[name].context.moisture) {
-            // debug("Water Level Averaging Init",name);
-            self.accessories[name].context.moisture = [];
-            self.accessories[name].context.moisture.push(1);
-            self.accessories[name].context.moisture.push(1);
-            self.accessories[name].context.moisture.push(1);
-            self.accessories[name].context.moisture.push(1);
-            self.accessories[name].context.moisture.push(1);
-          }
-
-          self.accessories[name].context.moisture.push((1024 - roundInt(response.Data.Moisture)) / 10.2);
-          self.accessories[name].context.moisture.shift();
-
-          // debug("Water Level",name,self.accessories[name].context.moisture);
-
-          var moist = average(self.accessories[name].context.moisture);
-
-          self.accessories[name].getService(Service.TemperatureSensor)
-            .setCharacteristic(Characteristic.WaterLevel, roundInt(moist));
-          // Do we have a leak ?
-
-          debug("%s Leak: %s > %s ?", name, moist, this.leak);
-
-          if (response.Data.Moisture === 1024) {
-            debug('Leak Sensor Failed', name, response.Data.Moisture);
-            self.accessories[name + "LS"].getService(Service.LeakSensor)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
-          } else {
-            self.accessories[name + "LS"].getService(Service.LeakSensor)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-          }
-
-          if (moist > this.leak) {
-            this.leakDetected = Date.now() + 15 * 60 * 1000; // Don't clear alerts for 15 minutes
-            debug("Leak", name);
-            self.accessories[name].getService(Service.TemperatureSensor)
-              .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
-            self.accessories[name + "LS"].getService(Service.LeakSensor)
-              .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_DETECTED);
-          } else {
-            debug("No Leak", name);
-
-            if (Date.now() > this.leakDetected) { // Don't clear alerts for a minimum of 15 minutes
-              self.accessories[name].getService(Service.TemperatureSensor)
-                .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
-              self.accessories[name + "LS"].getService(Service.LeakSensor)
-                .setCharacteristic(Characteristic.LeakDetected, Characteristic.LeakDetected.LEAK_NOT_DETECTED);
-            }
-          }
-        }
-
-        if (response.Model.includes("BAT")) {
-          self.accessories[name].getService(Service.BatteryService)
-            .getCharacteristic(Characteristic.BatteryLevel).updateValue(response.Data.Battery / 1024 * 100);
-          debug("Is %s < %s ", this.battery, response.Data.Battery / 1024 * 100);
-          if (this.battery > response.Data.Battery / 1024 * 100) {
-            self.accessories[name].getService(Service.BatteryService)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
-          } else {
-            self.accessories[name].getService(Service.BatteryService)
-              .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
-          }
-        }
-
-        if (response.Model.includes("BME")) {
-          // Set BME280 Atmospheric pressure sensor;
-          self.accessories[name].getService(Service.TemperatureSensor)
-            .setCharacteristic(CustomCharacteristic.AtmosphericPressureLevel, roundInt(response.Data.Barometer));
-        }
-
-        //                debug("Callback Temp",roundInt(response.Data.Temperature));
-        callback(null, roundInt(response.Data.Temperature));
       }
     }
   }.bind(self));
