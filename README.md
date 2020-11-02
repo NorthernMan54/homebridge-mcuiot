@@ -4,7 +4,7 @@
 
 And in the process of migrating all my devices to the [Tasmota](https://tasmota.github.io/docs/) firmware and the [homebridge-tasmota](https://github.com/NorthernMan54/homebridge-tasmota) plugin.  With the transition I'm not changing my devices, just flashing them with Tasmota.
 
-If someone wants to take over ownership of this codebase, please let me know.
+If someone wants to take over ownership of this codebase and repository, please let me know.
 
 ![MCUIOT](docs/1.jpg)
 
